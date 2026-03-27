@@ -22,7 +22,7 @@ for (const p of POKEMON_SEED) {
           id: p.id,
           name: p.name,
           formName: f.name,
-          stats: s,
+          stats: s as unknown as Record<string, number>,
           bst: s.hp + s.attack + s.defense + s.spAtk + s.spDef + s.speed,
           abilities: f.abilities.map((a: any) => a.name),
           types: f.types,
