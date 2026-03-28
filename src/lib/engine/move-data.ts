@@ -1482,6 +1482,64 @@ export const MOVE_DATA: Record<string, EngineMove> = {
     flags: {},
     effect: "Poisons grounded foes switching in.",
   },
+  "Parting Shot": {
+    name: "Parting Shot", type: "dark", category: "status", basePower: 0,
+    accuracy: 100, pp: 20, priority: 0, target: "normal",
+    flags: { sound: true },
+    effect: "Lowers target's Attack and Sp. Atk by 1, then switches out.",
+  },
+  "Water Shuriken": {
+    name: "Water Shuriken", type: "water", category: "special", basePower: 15,
+    accuracy: 100, pp: 20, priority: 1, target: "normal",
+    flags: {},
+    multiHit: [2, 5],
+  },
+  "Accelerock": {
+    name: "Accelerock", type: "rock", category: "physical", basePower: 40,
+    accuracy: 100, pp: 20, priority: 1, target: "normal",
+    flags: { contact: true },
+  },
+  "Lunge": {
+    name: "Lunge", type: "bug", category: "physical", basePower: 80,
+    accuracy: 100, pp: 15, priority: 0, target: "normal",
+    flags: { contact: true },
+    effect: "Lowers target's Attack by 1.",
+  },
+  "Outrage": {
+    name: "Outrage", type: "dragon", category: "physical", basePower: 120,
+    accuracy: 100, pp: 10, priority: 0, target: "normal",
+    flags: { contact: true },
+    effect: "Attacks for 2-3 turns, then confuses the user.",
+  },
+  "Bullet Seed": {
+    name: "Bullet Seed", type: "grass", category: "physical", basePower: 25,
+    accuracy: 100, pp: 30, priority: 0, target: "normal",
+    flags: { bullet: true },
+    multiHit: [2, 5],
+  },
+  "Beak Blast": {
+    name: "Beak Blast", type: "flying", category: "physical", basePower: 100,
+    accuracy: 100, pp: 15, priority: -3, target: "normal",
+    flags: { bullet: true },
+    effect: "Burns attacker on contact while charging.",
+  },
+  "Leech Life": {
+    name: "Leech Life", type: "bug", category: "physical", basePower: 80,
+    accuracy: 100, pp: 10, priority: 0, target: "normal",
+    flags: { contact: true, drain: 50 },
+  },
+  "Infestation": {
+    name: "Infestation", type: "bug", category: "special", basePower: 20,
+    accuracy: 100, pp: 20, priority: 0, target: "normal",
+    flags: { contact: true },
+    effect: "Traps target for 4-5 turns, dealing 1/8 HP per turn.",
+  },
+  "Healing Wish": {
+    name: "Healing Wish", type: "psychic", category: "status", basePower: 0,
+    accuracy: 100, pp: 10, priority: 0, target: "self",
+    flags: {},
+    effect: "User faints. Next switch-in is fully healed.",
+  },
 };
 
 /** Look up a move by name */

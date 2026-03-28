@@ -7,7 +7,7 @@ import Link from "next/link";
 import {
   TrendingUp, TrendingDown, Award, Shield, Zap, Target, Brain,
   ChevronDown, ChevronUp, X, Swords, Users, Star, Crown, Flame,
-  BarChart3, ArrowRight, Sparkles, Info,
+  BarChart3, ArrowRight, Sparkles,
 } from "lucide-react";
 import { POKEMON_SEED } from "@/lib/pokemon-data";
 import { TYPE_COLORS, type PokemonType } from "@/lib/types";
@@ -33,7 +33,7 @@ import {
 } from "@/lib/engine";
 import {
   SIM_POKEMON, SIM_PAIRS, SIM_ARCHETYPES, SIM_META,
-  SIM_TOTAL_BATTLES, SIM_DATE, SIM_MOVES,
+  SIM_TOTAL_BATTLES, SIM_MOVES,
 } from "@/lib/simulation-data";
 
 // ── HYBRID TIER CALCULATION (ML + Tournament Data) ────────────────────────
@@ -214,13 +214,13 @@ export default function MetaPage() {
           </span>
         </h1>
         <p className="text-muted-foreground mt-2 text-sm max-w-2xl">
-          Deep competitive analysis powered by the <span className="font-semibold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">Champions Lab Advanced VGC Battle Engine</span> — <span className="font-semibold text-foreground">{SIM_TOTAL_BATTLES > 0 ? SIM_TOTAL_BATTLES.toLocaleString() : "1,000,000+"}  simulated battles</span> with full damage calc, ELO rankings,
+          Deep competitive analysis powered by the <span className="font-semibold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">Champions Lab Advanced VGC Battle Engine</span> — <span className="font-semibold text-foreground">{SIM_TOTAL_BATTLES > 0 ? SIM_TOTAL_BATTLES.toLocaleString() : "2,000,000+"}  simulated battles</span> with full damage calc, ELO rankings,
           win-rate matrices across {TOURNAMENT_TEAMS.length} tournament teams, {TOURNAMENT_USAGE.length} usage entries, and {CORE_PAIRS.length} core pair combinations.
         </p>
         <div className="flex items-center gap-4 mt-3">
           <a href="/battle-bot" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-300 hover:border-amber-400 transition-colors">
             <Brain className="w-3.5 h-3.5 text-amber-600" />
-            <span className="text-xs font-bold text-amber-700">⚡ 1M+ Battle Engine</span>
+            <span className="text-xs font-bold text-amber-700">⚡ 2M+ Battle Engine</span>
           </a>
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200">
             <Award className="w-3.5 h-3.5 text-violet-600" />
@@ -267,7 +267,7 @@ export default function MetaPage() {
               <span className="px-3 py-1 text-[10px] font-bold uppercase rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">Live Predictions</span>
             </div>
             <p className="text-sm text-muted-foreground mb-5">
-              Our ML engine analyzed 1,000,000 battles, 250 tournament results, and 40+ core pairs to predict what teams you&apos;ll face at your next event. Click any team for full breakdown.
+              Our ML engine analyzed 2,000,000 battles, 250 tournament results, and 40+ core pairs to predict what teams you&apos;ll face at your next event. Click any team for full breakdown.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {metaTeams.map(meta => (
@@ -280,7 +280,7 @@ export default function MetaPage() {
           <div className="glass rounded-2xl p-6 border border-emerald-200/60">
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
               <Brain className="w-5 h-5 text-emerald-500" /> ML Engine Insights
-              <span className="text-xs font-normal text-muted-foreground ml-2">from 1,000,000 simulated battles</span>
+              <span className="text-xs font-normal text-muted-foreground ml-2">from 2,000,000 simulated battles</span>
             </h2>
             <div className="space-y-3">
               {ML_INSIGHTS.map((insight, i) => (
@@ -312,22 +312,22 @@ export default function MetaPage() {
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="text-center p-3 bg-white/60 rounded-xl">
-                <p className="text-2xl font-extrabold text-emerald-700">10.9</p>
+                <p className="text-2xl font-extrabold text-emerald-700">10.7</p>
                 <p className="text-[10px] text-muted-foreground">Avg Turns/Battle</p>
                 <p className="text-[9px] text-emerald-600 font-medium">VGC Realistic ✓</p>
               </div>
               <div className="text-center p-3 bg-white/60 rounded-xl">
-                <p className="text-2xl font-extrabold text-cyan-700">21.7%</p>
+                <p className="text-2xl font-extrabold text-cyan-700">23.1%</p>
                 <p className="text-[10px] text-muted-foreground">Protect Usage</p>
                 <p className="text-[9px] text-emerald-600 font-medium">Pro-level ✓</p>
               </div>
               <div className="text-center p-3 bg-white/60 rounded-xl">
-                <p className="text-2xl font-extrabold text-violet-700">8.3%</p>
+                <p className="text-2xl font-extrabold text-violet-700">8.7%</p>
                 <p className="text-[10px] text-muted-foreground">Switch Rate</p>
                 <p className="text-[9px] text-emerald-600 font-medium">VGC Realistic ✓</p>
               </div>
               <div className="text-center p-3 bg-white/60 rounded-xl">
-                <p className="text-2xl font-extrabold text-amber-700">97.0%</p>
+                <p className="text-2xl font-extrabold text-amber-700">98.1%</p>
                 <p className="text-[10px] text-muted-foreground">Move Coverage</p>
                 <p className="text-[9px] text-emerald-600 font-medium">Complete ✓</p>
               </div>
@@ -521,13 +521,13 @@ export default function MetaPage() {
             </div>
           </div>
 
-          {/* ═══ 6. TOP MOVES — Win rates from 1M battles ═══ */}
+          {/* ═══ 6. TOP MOVES — Win rates from 2M battles ═══ */}
           <div className="glass rounded-2xl p-6 border border-gray-200/60">
             <h2 className="text-lg font-bold mb-1 flex items-center gap-2">
               <Zap className="w-5 h-5 text-amber-500" /> Highest Win-Rate Moves
             </h2>
             <p className="text-sm text-muted-foreground mb-4">
-              Moves that appeared on the most winning teams across 1,000,000 simulated battles. Teams running these moves won significantly more often.
+              Moves that appeared on the most winning teams across 2,000,000 simulated battles. Teams running these moves won significantly more often.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
               {ML_BEST_MOVES.map((m, i) => (
@@ -593,7 +593,7 @@ export default function MetaPage() {
               {/* ML Cores */}
               <div>
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Brain className="w-3.5 h-3.5 text-emerald-500" /> ML-Discovered (1M Battles)
+                  <Brain className="w-3.5 h-3.5 text-emerald-500" /> ML-Discovered (2M Battles)
                 </h4>
                 <div className="space-y-2">
                   {ML_BEST_CORES.slice(0, 4).map(c => (
@@ -727,7 +727,7 @@ export default function MetaPage() {
               <BarChart3 className="w-5 h-5 text-cyan-500" /> Archetype Power Rankings
             </h2>
             <p className="text-sm text-muted-foreground mb-4">
-              Every archetype ranked by ML ELO and win rate. The most successful playstyles across 1,000,000 simulated doubles battles.
+              Every archetype ranked by ML ELO and win rate. The most successful playstyles across 2,000,000 simulated doubles battles.
             </p>
             <div className="space-y-2">
               {ML_ARCHETYPES.map((a, i) => (
@@ -838,7 +838,7 @@ export default function MetaPage() {
               <Brain className="w-5 h-5 text-emerald-500" /> ML Simulation Rankings
             </h2>
             <p className="text-sm text-muted-foreground mb-4">
-              ELO ratings from 2,000,000 simulated VGC doubles battles. Tiers based on win rate: S (56%+), A (52%+), B (49%+), C (46%+), D (below 46% or insufficient data).
+              ELO ratings from {SIM_TOTAL_BATTLES.toLocaleString()} simulated VGC doubles battles. Tiers based on composite win rate percentiles: S (top 5%, ≥{TIER_S.toFixed(1)}%), A (top 25%, ≥{TIER_A.toFixed(1)}%), B (top 65%, ≥{TIER_B.toFixed(1)}%), C (top 88%, ≥{TIER_C.toFixed(1)}%), D (below or insufficient data).
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -1056,7 +1056,7 @@ export default function MetaPage() {
 
             {/* ML Cores */}
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Brain className="w-4 h-4 text-emerald-500" /> ML-Discovered Cores <span className="text-xs font-normal text-muted-foreground">(from 1M battles)</span>
+              <Brain className="w-4 h-4 text-emerald-500" /> ML-Discovered Cores <span className="text-xs font-normal text-muted-foreground">(from 2M battles)</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
               {ML_BEST_CORES.map((c, i) => (
@@ -1202,7 +1202,7 @@ export default function MetaPage() {
               <Zap className="w-5 h-5 text-amber-500" /> Move Win Rate Analysis
             </h2>
             <p className="text-sm text-muted-foreground mb-4">
-              Move win rates from 1,000,000 ML simulated battles. Higher win rate means teams using this move won more often. Usage count shows total appearances across all battles.
+              Move win rates from 2,000,000 ML simulated battles. Higher win rate means teams using this move won more often. Usage count shows total appearances across all battles.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {ML_BEST_MOVES.map((m, i) => (
@@ -1253,7 +1253,11 @@ export default function MetaPage() {
               const prebuiltTeams = getPrebuiltTeamsWithPokemon(pokemon.id);
               const tier = mlData ? mlData.tier : usageData ? (usageData.usageRate >= 30 ? "S" : usageData.usageRate >= 15 ? "A" : "B") : "—";
               // For mega forms, try to get mega stats from the form data
-              const megaForm = isMega ? (pokemon.forms?.filter(f => f.isMega) ?? [])[0] : null;
+              // Match the exact form name suffix (X/Y) so Mega Charizard Y doesn't show X's stats
+              const megaForms = pokemon.forms?.filter(f => f.isMega) ?? [];
+              const megaForm = isMega
+                ? megaForms.find(f => f.name === modal.name) ?? megaForms[0] ?? null
+                : null;
               const displayStats = megaForm?.baseStats ?? pokemon.baseStats;
               return (
                 <div className="p-6 space-y-6">
@@ -1629,7 +1633,7 @@ export default function MetaPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="p-5 rounded-xl bg-amber-50 border border-amber-200 text-center">
                         <p className="text-4xl font-extrabold text-amber-700">{mlMove.wr}%</p>
-                        <p className="text-xs text-muted-foreground mt-1">Win Rate (1M Battles)</p>
+                        <p className="text-xs text-muted-foreground mt-1">Win Rate (2M Battles)</p>
                         <div className="h-3 bg-amber-200 rounded-full mt-2 overflow-hidden"><div className="h-full rounded-full bg-amber-500" style={{ width: `${mlMove.wr}%` }} /></div>
                       </div>
                       <div className="p-5 rounded-xl bg-cyan-50 border border-cyan-200 text-center">
