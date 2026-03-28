@@ -9,8 +9,16 @@ import { calculateStats, getEffectiveSpeed, applyStatStage } from "./stat-calc";
 import { calculateDamage, type DamageCalcPokemon, type DamageCalcTarget, type DamageCalcOptions } from "./damage-calc";
 import { getMatchup } from "./type-chart";
 import { getMove, isSpreadMove, type EngineMove, MOVE_DATA } from "./move-data";
-import { getAbilityEffect, isWeatherSetter } from "./ability-data";
+import { getAbilityEffect, isWeatherSetter, getTypeImmunity } from "./ability-data";
 import type { NatureName } from "./natures";
+
+// ── PALAFIN HERO FORM STATS ─────────────────────────────────────────────────
+const PALAFIN_HERO_STATS: BaseStats = {
+  hp: 100, attack: 160, defense: 97, spAtk: 106, spDef: 87, speed: 100
+};
+const PALAFIN_ZERO_STATS: BaseStats = {
+  hp: 100, attack: 70, defense: 72, spAtk: 53, spDef: 62, speed: 100
+};
 
 // ── MEGA DETECTION ───────────────────────────────────────────────────────────
 
@@ -62,6 +70,8 @@ interface BattlePokemon {
   types: PokemonType[];
   isMega: boolean;
   effectiveBaseStats: BaseStats;
+  hasTransformed: boolean;  // Zero to Hero tracking
+  hasSwitchedOut: boolean;  // Palafin: switched out at least once
 }
 
 interface FieldState {
@@ -110,7 +120,22 @@ function createBattlePokemon(pokemon: ChampionsPokemon, set: CommonSet): BattleP
     types: mega.types,
     isMega: mega.isMega,
     effectiveBaseStats: mega.baseStats,
+    hasTransformed: false,
+    hasSwitchedOut: false,
   };
+}
+
+/** Apply Zero to Hero transformation — recalculate stats with Hero Form base stats */
+function applyHeroTransform(mon: BattlePokemon): void {
+  if (mon.hasTransformed) return;
+  mon.hasTransformed = true;
+  mon.effectiveBaseStats = PALAFIN_HERO_STATS;
+  const newStats = calculateStats(PALAFIN_HERO_STATS, mon.set.sp, mon.set.nature as NatureName);
+  // Keep current HP ratio
+  const hpRatio = mon.currentHP / mon.maxHP;
+  mon.stats = newStats;
+  mon.maxHP = newStats.hp;
+  mon.currentHP = Math.max(1, Math.floor(hpRatio * newStats.hp));
 }
 
 // ── SPEED CALCULATION ────────────────────────────────────────────────────────
@@ -649,7 +674,7 @@ function aiChooseAction(
   allies: (BattlePokemon | null)[],
   field: FieldState,
   state: BattleState
-): { moveName: string; targetSlot: number } {
+): { moveName: string; targetSlot: number; switchOut?: boolean } {
   const allChoices: MoveChoice[] = [];
   
   // Evaluate each move
@@ -667,15 +692,56 @@ function aiChooseAction(
   }
   
   // Human-like variance: ±12 for score randomness (humans aren't perfect calculators)
-  // Higher variance on close decisions simulates human uncertainty
   for (const c of allChoices) {
     c.score += (Math.random() - 0.5) * 24;
   }
   
-  // Occasional suboptimal play (5% chance to pick 2nd-best option — humans misread sometimes)
   allChoices.sort((a, b) => b.score - a.score);
+  const bestMoveScore = allChoices[0].score;
+  
+  // ── SWITCH EVALUATION ──────────────────────────────────────────────────
+  // Like real VGC players, consider switching when:
+  // 1. Palafin (Zero to Hero) needs to switch out to activate Hero Form
+  // 2. Current mon has a terrible matchup and bench has better options
+  const myTeam = sideIndex === 1 ? state.team1 : state.team2;
+  const myActive = sideIndex === 1 ? state.active1 : state.active2;
+  const bench = myTeam.filter(p =>
+    p.isAlive && !p.isFainted && p !== myActive[0] && p !== myActive[1]
+  );
+  
+  if (bench.length > 0) {
+    let switchScore = -100; // Default: don't switch
+    
+    // Palafin Zero to Hero: MUST switch out on turn 1-2 to activate Hero Form
+    if (mon.ability === "Zero To Hero" && !mon.hasSwitchedOut && !mon.hasTransformed) {
+      // Palafin in Zero Form is USELESS (70 Atk). Switch out immediately.
+      switchScore = 120; // Higher than any move score — this is mandatory VGC play
+      // Slightly less urgent if ally has Fake Out (safe switch next turn)
+      const allyHasFakeOut = allies.some(a => a && !a.isFainted && a.canFakeOut && a.set.moves.includes("Fake Out"));
+      if (state.turn > 1 && allyHasFakeOut) switchScore = 95;
+    }
+    
+    // Bad matchup switch: if our best move does poor damage and we're threatened
+    if (switchScore < 0) {
+      const oppSide: 1 | 2 = sideIndex === 1 ? 2 : 1;
+      let maxIncomingDmg = 0;
+      for (const opp of opponents) {
+        if (!opp || opp.isFainted) continue;
+        maxIncomingDmg = Math.max(maxIncomingDmg, estimateThreatLevel(opp, mon, field, oppSide));
+      }
+      // If threatened with >60% and our best move is weak (<30 score), consider switching
+      if (maxIncomingDmg >= 60 && bestMoveScore < 30) {
+        switchScore = 35;
+      }
+    }
+    
+    if (switchScore > bestMoveScore) {
+      return { moveName: "", targetSlot: -1, switchOut: true };
+    }
+  }
+  
+  // Occasional suboptimal play (5% chance to pick 2nd-best option — humans misread sometimes)
   if (allChoices.length >= 2 && Math.random() < 0.05) {
-    // Only if the gap is small (within 20 points — humans don't make huge mistakes)
     if (allChoices[0].score - allChoices[1].score < 20) {
       return { moveName: allChoices[1].moveName, targetSlot: allChoices[1].targetSlot };
     }
@@ -702,6 +768,16 @@ function applySwitch(state: BattleState, sideIndex: 1 | 2, slot: 0 | 1): void {
   const opponents = sideIndex === 1 ? state.active2 : state.active1;
   const oppSide: 1 | 2 = sideIndex === 1 ? 2 : 1;
   
+  // Handle Regenerator on switch-out (heal the mon leaving)
+  const leaving = active[slot];
+  if (leaving && leaving.isAlive && !leaving.isFainted && leaving.ability === "Regenerator") {
+    leaving.currentHP = Math.min(leaving.maxHP, leaving.currentHP + Math.floor(leaving.maxHP / 3));
+  }
+  // Mark Palafin as having switched out (for Zero to Hero)
+  if (leaving && leaving.isAlive && !leaving.isFainted && leaving.ability === "Zero To Hero") {
+    leaving.hasSwitchedOut = true;
+  }
+
   // Find benched alive Pokémon
   const bench = team.filter(p =>
     p.isAlive && !p.isFainted &&
@@ -719,13 +795,11 @@ function applySwitch(state: BattleState, sideIndex: 1 | 2, slot: 0 | 1): void {
       // Type advantage over current opponents
       for (const opp of opponents) {
         if (!opp || opp.isFainted) continue;
-        // Offensive coverage: our types vs their defense
         for (const type of candidate.types) {
           const eff = getMatchup(type, opp.types);
           if (eff > 1) score += 15;
           if (eff < 1) score -= 5;
         }
-        // Defensive resilience: their types vs our defense
         for (const oppType of opp.types) {
           const eff = getMatchup(oppType, candidate.types);
           if (eff < 1) score += 10;
@@ -750,6 +824,11 @@ function applySwitch(state: BattleState, sideIndex: 1 | 2, slot: 0 | 1): void {
       if (state.field.trickRoom && candidate.stats.speed < 70) score += 10;
       if (!state.field.trickRoom && candidate.stats.speed > 100) score += 5;
       
+      // HUGE bonus for Palafin that has switched out and can now come back as Hero
+      if (candidate.ability === "Zero To Hero" && candidate.hasSwitchedOut && !candidate.hasTransformed) {
+        score += 50; // Top priority: bring back the Hero nuke
+      }
+      
       if (score > bestScore) {
         bestScore = score;
         bestMon = candidate;
@@ -762,23 +841,56 @@ function applySwitch(state: BattleState, sideIndex: 1 | 2, slot: 0 | 1): void {
     next.protectCount = 0;
     next.boosts = { attack: 0, defense: 0, spAtk: 0, spDef: 0, speed: 0 };
     
+    // Zero to Hero: transform to Hero Form on re-entry after switching out
+    if (next.ability === "Zero To Hero" && next.hasSwitchedOut && !next.hasTransformed) {
+      applyHeroTransform(next);
+    }
+    
     // On-entry abilities
     const entryAbility = getAbilityEffect(next.ability);
     if (entryAbility?.setsWeather) {
       state.field.weather = entryAbility.setsWeather;
       state.field.weatherTurns = 5;
     }
+    if (entryAbility?.setsTerrain) {
+      state.field.terrain = entryAbility.setsTerrain;
+      state.field.terrainTurns = 5;
+    }
+    // Commander Surge: boost SpAtk on entry
+    if (next.ability === "Commander Surge") {
+      next.boosts.spAtk = Math.min(6, next.boosts.spAtk + 1);
+    }
+    // Razor Plating: +1 Defense on entry
+    if (next.ability === "Razor Plating") {
+      next.boosts.defense = Math.min(6, next.boosts.defense + 1);
+    }
     if (next.ability === "Intimidate") {
       for (const opp of opponents) {
         if (opp && opp.isAlive) {
           if (!isIntimidateBlocked(opp)) {
             opp.boosts.attack = Math.max(-6, opp.boosts.attack - 1);
+            // Competitive/Defiant trigger on ANY stat drop
+            if (opp.ability === "Competitive") {
+              opp.boosts.spAtk = Math.min(6, opp.boosts.spAtk + 2);
+            }
+            if (opp.ability === "Defiant") {
+              opp.boosts.attack = Math.min(6, opp.boosts.attack + 2);
+            }
           }
-          if (opp.ability === "Competitive") {
-            opp.boosts.spAtk = Math.min(6, opp.boosts.spAtk + 2);
-          }
-          if (opp.ability === "Defiant") {
-            opp.boosts.attack = Math.min(6, opp.boosts.attack + 2);
+        }
+      }
+    }
+    // Supreme Commander: boost ally's highest stat
+    if (next.ability === "Supreme Commander") {
+      const ally = active[slot === 0 ? 1 : 0];
+      if (ally && ally.isAlive && !ally.isFainted) {
+        const highest = Object.entries(ally.stats)
+          .filter(([k]) => k !== "hp")
+          .sort(([,a], [,b]) => (b as number) - (a as number))[0];
+        if (highest) {
+          const statName = highest[0] === "spAtk" ? "spAtk" : highest[0] === "spDef" ? "spDef" : highest[0];
+          if (statName in ally.boosts) {
+            (ally.boosts as Record<string, number>)[statName] = Math.min(6, (ally.boosts as Record<string, number>)[statName] + 1);
           }
         }
       }
@@ -802,6 +914,10 @@ function applyEndOfTurn(state: BattleState): void {
     state.field.trickRoomTurns--;
     if (state.field.trickRoomTurns === 0) state.field.trickRoom = false;
   }
+  if (state.field.terrainTurns > 0) {
+    state.field.terrainTurns--;
+    if (state.field.terrainTurns === 0) state.field.terrain = null;
+  }
   
   const sides = [
     { side: state.field.side1, active: state.active1 },
@@ -814,14 +930,14 @@ function applyEndOfTurn(state: BattleState): void {
     if (side.lightScreen > 0) side.lightScreen--;
     if (side.auroraVeil > 0) side.auroraVeil--;
     
-    // Status damage
+    // Status damage (Magic Guard immune to indirect damage)
     for (const mon of active) {
       if (!mon || mon.isFainted) continue;
       
-      if (mon.status === "burn") {
+      if (mon.status === "burn" && mon.ability !== "Magic Guard") {
         mon.currentHP -= Math.floor(mon.maxHP / 16);
       }
-      if (mon.status === "poison") {
+      if (mon.status === "poison" && mon.ability !== "Magic Guard") {
         mon.currentHP -= Math.floor(mon.maxHP / 8);
       }
       
@@ -834,9 +950,17 @@ function applyEndOfTurn(state: BattleState): void {
       if (state.field.weather === "sand") {
         if (!mon.types.includes("rock") && !mon.types.includes("ground") &&
             !mon.types.includes("steel") && mon.ability !== "Sand Force" &&
-            mon.ability !== "Sand Rush" && mon.ability !== "Sand Veil") {
+            mon.ability !== "Sand Rush" && mon.ability !== "Sand Veil" &&
+            mon.ability !== "Magic Guard" && mon.ability !== "Overcoat" &&
+            mon.ability !== "Sky High") {
           mon.currentHP -= Math.floor(mon.maxHP / 16);
         }
+      }
+      
+      // Grassy Terrain healing (grounded mons heal 1/16 per turn)
+      if (state.field.terrain === "grassy" && mon.ability !== "Levitate" &&
+          !mon.types.includes("flying") && mon.ability !== "Sky High") {
+        mon.currentHP = Math.min(mon.maxHP, mon.currentHP + Math.floor(mon.maxHP / 16));
       }
       
       // Check faint
@@ -949,14 +1073,47 @@ function executeMove(
   }
   
   for (const t of targets) {
-    // Protected targets block all damage
-    if (t.isProtected) continue;
+    // Protected targets block all damage (except Drill Force pierce)
+    if (t.isProtected) {
+      if (user.ability === "Drill Force" && (move.type === "ground" || move.type === "steel")) {
+        // Drill Force pierces Protect for 25% damage — continue but reduce damage later
+      } else {
+        continue;
+      }
+    }
+    
+    // Type immunity from abilities (Water Absorb, Volt Absorb, Lightning Rod, etc.)
+    const targetImmunity = getTypeImmunity(t.ability);
+    if (targetImmunity && move.type === targetImmunity && user.ability !== "Mold Breaker") {
+      // Absorb abilities heal instead of dealing damage
+      if (t.ability === "Water Absorb" || t.ability === "Volt Absorb") {
+        t.currentHP = Math.min(t.maxHP, t.currentHP + Math.floor(t.maxHP * 0.25));
+      }
+      if (t.ability === "Flash Fire") {
+        // Flash Fire activated — boost tracked via flag (simplified: +50% fire damage boost)
+      }
+      // Motor Drive: speed boost
+      if (t.ability === "Motor Drive") {
+        t.boosts.speed = Math.min(6, t.boosts.speed + 1);
+      }
+      // Lightning Rod / Storm Drain: SpAtk boost
+      if (t.ability === "Lightning Rod" || t.ability === "Storm Drain") {
+        t.boosts.spAtk = Math.min(6, t.boosts.spAtk + 1);
+      }
+      // Sap Sipper: Atk boost
+      if (t.ability === "Sap Sipper") {
+        t.boosts.attack = Math.min(6, t.boosts.attack + 1);
+      }
+      continue; // Move is fully absorbed
+    }
     
     // Accuracy check
     if (move.accuracy > 0 && Math.random() * 100 > move.accuracy) continue;
     
     // Focus Sash precheck
     const hadFocusSash = t.item === "Focus Sash" && !t.itemConsumed && t.currentHP === t.maxHP;
+    // Sturdy precheck (works like Focus Sash at full HP)
+    const hadSturdy = t.ability === "Sturdy" && t.currentHP === t.maxHP;
     
     // Calculate damage
     const options: DamageCalcOptions = {
@@ -997,12 +1154,50 @@ function executeMove(
     let damage = result.damage[0] + Math.floor(Math.random() * (result.damage[1] - result.damage[0] + 1));
     damage = Math.max(1, damage);
     
+    // Friend Guard: reduce damage by 25% if ally has Friend Guard
+    const defenderSide = state.active1.includes(t) ? state.active1 : state.active2;
+    const friendGuardAlly = defenderSide.find(a => a && a !== t && !a.isFainted && a.ability === "Friend Guard");
+    if (friendGuardAlly) {
+      damage = Math.floor(damage * 0.75);
+    }
+    
+    // Thick Fat: halve Fire/Ice damage
+    if (t.ability === "Thick Fat" && (move.type === "fire" || move.type === "ice")) {
+      damage = Math.floor(damage * 0.5);
+    }
+    
+    // Prism Armor: reduce super-effective damage by 25%
+    if (t.ability === "Prism Armor" && result.effectiveness >= 2) {
+      damage = Math.floor(damage * 0.75);
+    }
+    
+    // Drill Force through Protect: only 25% damage
+    if (t.isProtected && user.ability === "Drill Force") {
+      damage = Math.floor(damage * 0.25);
+    }
+    
+    // Parental Bond: hit twice (second hit at 25% power)
+    if (user.ability === "Parental Bond" && !isSpreadMove(move)) {
+      const secondHit = Math.max(1, Math.floor(damage * 0.25));
+      damage += secondHit;
+    }
+    
+    // Guts: 1.5x damage when user has status (applied as post-multiplier)
+    if (user.ability === "Guts" && user.status && move.category === "physical") {
+      damage = Math.floor(damage * 1.5);
+    }
+    
     t.currentHP -= damage;
     
     // Focus Sash
     if (hadFocusSash && t.currentHP <= 0) {
       t.currentHP = 1;
       t.itemConsumed = true;
+    }
+    
+    // Sturdy (like Focus Sash at full HP)
+    if (hadSturdy && t.currentHP <= 0) {
+      t.currentHP = 1;
     }
     
     // Sitrus Berry
@@ -1083,6 +1278,22 @@ function executeMove(
       // Moxie
       if (user.ability === "Moxie") {
         user.boosts.attack = Math.min(6, user.boosts.attack + 1);
+      }
+      // Volt Rush: speed +1 after KO
+      if (user.ability === "Volt Rush") {
+        user.boosts.speed = Math.min(6, user.boosts.speed + 1);
+      }
+      // Beast Boost (simplified: boost highest stat)
+      if (user.ability === "Beast Boost") {
+        const highest = Object.entries(user.stats)
+          .filter(([k]) => k !== "hp")
+          .sort(([,a], [,b]) => (b as number) - (a as number))[0];
+        if (highest) {
+          const statName = highest[0];
+          if (statName in user.boosts) {
+            (user.boosts as Record<string, number>)[statName] = Math.min(6, (user.boosts as Record<string, number>)[statName] + 1);
+          }
+        }
       }
     }
     if (user.currentHP <= 0) {
@@ -1202,6 +1413,17 @@ export function simulateBattle(
       state.field.weatherTurns = 5;
     }
   }
+  // Terrain setters on entry
+  const terrainSetters = entryMons
+    .filter(m => { const e = getAbilityEffect(m.ability); return e?.setsTerrain; })
+    .sort((a, b) => b.stats.speed - a.stats.speed);
+  for (const mon of terrainSetters) {
+    const abilityEffect = getAbilityEffect(mon.ability);
+    if (abilityEffect?.setsTerrain) {
+      state.field.terrain = abilityEffect.setsTerrain;
+      state.field.terrainTurns = 5;
+    }
+  }
   // Intimidate on entry
   for (let s = 0; s < 2; s++) {
     const active = s === 0 ? state.active1 : state.active2;
@@ -1211,8 +1433,18 @@ export function simulateBattle(
         for (const opp of opponents) {
           if (opp && !isIntimidateBlocked(opp)) {
             opp.boosts.attack = Math.max(-6, opp.boosts.attack - 1);
+            if (opp.ability === "Competitive") opp.boosts.spAtk = Math.min(6, opp.boosts.spAtk + 2);
+            if (opp.ability === "Defiant") opp.boosts.attack = Math.min(6, opp.boosts.attack + 2);
           }
         }
+      }
+      // Commander Surge: +1 SpAtk on entry
+      if (mon?.ability === "Commander Surge") {
+        mon.boosts.spAtk = Math.min(6, mon.boosts.spAtk + 1);
+      }
+      // Razor Plating: +1 Defense on entry
+      if (mon?.ability === "Razor Plating") {
+        mon.boosts.defense = Math.min(6, mon.boosts.defense + 1);
       }
     }
   }
@@ -1230,6 +1462,7 @@ export function simulateBattle(
       priority: number;
       speed: number;
       sideIndex: 1 | 2;
+      switchOut?: boolean;
     }
     
     const actions: TurnAction[] = [];
@@ -1243,6 +1476,17 @@ export function simulateBattle(
       if (!mon || mon.isFainted) continue;
       
       const choice = aiChooseAction(mon, sideIndex, opponents, allies, state.field, state);
+      
+      if (choice.switchOut) {
+        // Switches happen at max priority (like in VGC — switches go before moves)
+        actions.push({
+          mon, moveName: "", targetSlot: -1,
+          priority: 100, speed: getActualSpeed(mon, state.field, sideIndex),
+          sideIndex, switchOut: true,
+        });
+        continue;
+      }
+      
       const move = getMove(choice.moveName);
       const priority = move?.priority ?? 0;
       
@@ -1276,6 +1520,16 @@ export function simulateBattle(
     // Execute actions
     for (const action of actions) {
       if (action.mon.isFainted) continue;
+      
+      // Handle switch-out actions
+      if (action.switchOut) {
+        const active = action.sideIndex === 1 ? state.active1 : state.active2;
+        const slot = active.indexOf(action.mon) as 0 | 1;
+        if (slot >= 0) {
+          applySwitch(state, action.sideIndex, slot);
+        }
+        continue;
+      }
       
       const opponents = action.sideIndex === 1 ? state.active2 : state.active1;
       const allies = action.sideIndex === 1 ? state.active1 : state.active2;
@@ -1407,6 +1661,18 @@ export function simulateBattleWithLog(
       entryEvents.push(`${mon.pokemon.name}'s ${mon.ability} set the ${abilityEffect.setsWeather}!`);
     }
   }
+  // Terrain setters on entry
+  const logTerrainSetters = logEntryMons
+    .filter(m => { const e = getAbilityEffect(m.ability); return e?.setsTerrain; })
+    .sort((a, b) => b.stats.speed - a.stats.speed);
+  for (const mon of logTerrainSetters) {
+    const abilityEffect = getAbilityEffect(mon.ability);
+    if (abilityEffect?.setsTerrain) {
+      state.field.terrain = abilityEffect.setsTerrain;
+      state.field.terrainTurns = 5;
+      entryEvents.push(`${mon.pokemon.name}'s ${mon.ability} set ${abilityEffect.setsTerrain} terrain!`);
+    }
+  }
   for (let s = 0; s < 2; s++) {
     const active = s === 0 ? state.active1 : state.active2;
     const opponents = s === 0 ? state.active2 : state.active1;
@@ -1416,8 +1682,24 @@ export function simulateBattleWithLog(
           if (opp && !isIntimidateBlocked(opp)) {
             opp.boosts.attack = Math.max(-6, opp.boosts.attack - 1);
             entryEvents.push(`${mon.pokemon.name}'s Intimidate lowered ${opp.pokemon.name}'s Attack!`);
+            if (opp.ability === "Competitive") {
+              opp.boosts.spAtk = Math.min(6, opp.boosts.spAtk + 2);
+              entryEvents.push(`${opp.pokemon.name}'s Competitive raised its Sp.Atk!`);
+            }
+            if (opp.ability === "Defiant") {
+              opp.boosts.attack = Math.min(6, opp.boosts.attack + 2);
+              entryEvents.push(`${opp.pokemon.name}'s Defiant raised its Attack!`);
+            }
           }
         }
+      }
+      if (mon?.ability === "Commander Surge") {
+        mon.boosts.spAtk = Math.min(6, mon.boosts.spAtk + 1);
+        entryEvents.push(`${mon.pokemon.name}'s Commander Surge raised its Sp.Atk!`);
+      }
+      if (mon?.ability === "Razor Plating") {
+        mon.boosts.defense = Math.min(6, mon.boosts.defense + 1);
+        entryEvents.push(`${mon.pokemon.name}'s Razor Plating raised its Defense!`);
       }
     }
   }
@@ -1436,7 +1718,7 @@ export function simulateBattleWithLog(
     state.turn++;
     const turnEvents: string[] = [];
 
-    interface TurnAction { mon: BattlePokemon; moveName: string; targetSlot: number; priority: number; speed: number; sideIndex: 1 | 2 }
+    interface TurnAction { mon: BattlePokemon; moveName: string; targetSlot: number; priority: number; speed: number; sideIndex: 1 | 2; switchOut?: boolean }
     const actions: TurnAction[] = [];
     for (const [mon, sideIndex, opponents, allies] of [
       [state.active1[0], 1, state.active2, [state.active1[1]]],
@@ -1446,6 +1728,10 @@ export function simulateBattleWithLog(
     ] as [BattlePokemon | null, 1 | 2, (BattlePokemon | null)[], (BattlePokemon | null)[]][]) {
       if (!mon || mon.isFainted) continue;
       const choice = aiChooseAction(mon, sideIndex, opponents, allies, state.field, state);
+      if (choice.switchOut) {
+        actions.push({ mon, moveName: "", targetSlot: -1, priority: 100, speed: getActualSpeed(mon, state.field, sideIndex), sideIndex, switchOut: true });
+        continue;
+      }
       const move = getMove(choice.moveName);
       let effectivePriority = move?.priority ?? 0;
       if (mon.ability === "Prankster" && move?.category === "status") effectivePriority += 1;
@@ -1461,6 +1747,20 @@ export function simulateBattleWithLog(
 
     for (const action of actions) {
       if (action.mon.isFainted) continue;
+      // Handle switch-out actions
+      if (action.switchOut) {
+        const active = action.sideIndex === 1 ? state.active1 : state.active2;
+        const slot = active.indexOf(action.mon) as 0 | 1;
+        if (slot >= 0) {
+          const prevName = action.mon.pokemon.name;
+          applySwitch(state, action.sideIndex, slot);
+          const newMon = active[slot];
+          if (newMon) {
+            turnEvents.push(`${prevName} switched out! ${newMon.pokemon.name} was sent in!${newMon.hasTransformed ? " Palafin transformed into Hero Form!" : ""}`);
+          }
+        }
+        continue;
+      }
       const opponents = action.sideIndex === 1 ? state.active2 : state.active1;
       const allies = action.sideIndex === 1 ? state.active1 : state.active2;
       const target = opponents[action.targetSlot] ?? null;

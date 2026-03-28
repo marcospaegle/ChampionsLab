@@ -189,6 +189,11 @@ export const ABILITY_DATA: Record<string, AbilityEffect> = {
     description: "Raises Attack by 1 stage upon KOing a target.",
     vgcRelevance: 7,
   },
+  "Beast Boost": {
+    name: "Beast Boost", category: "offensive",
+    description: "Raises the user's highest stat by 1 stage upon KOing a target.",
+    vgcRelevance: 8,
+  },
   "Protean": {
     name: "Protean", category: "offensive",
     description: "Changes type to match the move being used (once per switch-in).",
