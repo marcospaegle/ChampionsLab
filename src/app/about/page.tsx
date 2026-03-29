@@ -245,7 +245,7 @@ export default function AboutPage() {
                   maxLength={100}
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-400/25 bg-white/80 dark:bg-gray-200/5 text-sm dark:text-gray-100 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 transition-colors dark:placeholder:text-gray-500"
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-400/25 bg-white/80 dark:bg-gray-200/5 text-sm text-gray-900 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 transition-colors"
                   placeholder="Your name"
                 />
               </div>
@@ -257,7 +257,7 @@ export default function AboutPage() {
                   maxLength={200}
                   value={form.email}
                   onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-400/25 bg-white/80 dark:bg-gray-200/5 text-sm dark:text-gray-100 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 transition-colors dark:placeholder:text-gray-500"
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-400/25 bg-white/80 dark:bg-gray-200/5 text-sm text-gray-900 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 transition-colors"
                   placeholder="you@example.com"
                 />
               </div>
@@ -268,12 +268,12 @@ export default function AboutPage() {
               <select
                 value={form.type}
                 onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-400/25 bg-white/80 dark:bg-gray-200/5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 transition-colors"
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-400/25 bg-white/80 dark:bg-gray-200/5 text-sm text-gray-900 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 transition-colors"
               >
-                <option value="feedback" className="dark:bg-[#111a2e] dark:text-gray-100">Feedback / Suggestion</option>
-                <option value="bug" className="dark:bg-[#111a2e] dark:text-gray-100">Bug Report</option>
-                <option value="feature" className="dark:bg-[#111a2e] dark:text-gray-100">Feature Request</option>
-                <option value="other" className="dark:bg-[#111a2e] dark:text-gray-100">Other</option>
+                <option value="feedback" className="dark:bg-[#111a2e]">Feedback / Suggestion</option>
+                <option value="bug" className="dark:bg-[#111a2e]">Bug Report</option>
+                <option value="feature" className="dark:bg-[#111a2e]">Feature Request</option>
+                <option value="other" className="dark:bg-[#111a2e]">Other</option>
               </select>
             </div>
 
@@ -285,7 +285,7 @@ export default function AboutPage() {
                 rows={5}
                 value={form.message}
                 onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-400/25 bg-white/80 dark:bg-gray-200/5 text-sm dark:text-gray-100 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 transition-colors resize-none dark:placeholder:text-gray-500"
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-400/25 bg-white/80 dark:bg-gray-200/5 text-sm text-gray-900 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 transition-colors resize-none"
                 placeholder="Tell us what's on your mind..."
               />
             </div>

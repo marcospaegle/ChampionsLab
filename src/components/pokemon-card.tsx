@@ -92,7 +92,7 @@ export function PokemonCard({ pokemon, onClick, index }: PokemonCardProps) {
         <div className="px-4 pb-4 pt-2 space-y-2">
           {/* Name & Dex number */}
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-[13px] tracking-tight text-gray-900 dark:text-gray-100">{pokemon.name}</h3>
+            <h3 className="font-semibold text-[13px] tracking-tight text-gray-900">{pokemon.name}</h3>
             <span className="text-[10px] text-gray-400 tabular-nums">
               #{pokemon.dexNumber.toString().padStart(3, "0")}
             </span>

@@ -1234,7 +1234,7 @@ export default function TeamBuilderPage() {
                   <>
                     <button
                       onClick={(e) => { e.stopPropagation(); removeSlot(i); }}
-                      className="absolute top-2 right-2 z-20 p-1 rounded-lg bg-white/80 dark:bg-gray-800/80 hover:bg-red-100 dark:hover:bg-red-500/20 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                      className="absolute top-2 right-2 z-20 p-1 rounded-lg bg-white/80 dark:bg-gray-800/80 hover:bg-red-100 dark:hover:bg-red-500/20 text-gray-600 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>

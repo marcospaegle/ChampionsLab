@@ -163,9 +163,9 @@ function RuleCard({ rule }: { rule: string }) {
               <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center", config.bg)}>
                 <Icon className={cn("w-3.5 h-3.5", config.color)} />
               </div>
-              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{config.label}</span>
+              <span className="text-sm font-semibold text-gray-900">{config.label}</span>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{config.description}</p>
+            <p className="text-xs text-gray-500 leading-relaxed">{config.description}</p>
           </motion.div>
         )}
       </AnimatePresence>
