@@ -63,6 +63,10 @@ const CHANGELOGS: Record<string, { description: string; entries: ChangelogEntry[
           "Protean/Libero: changes type to match move (once per switch-in)",
           "Damage Calculator now uses Mega form stats when holding Mega Stone",
           "Wind Rider + Tailwind interaction: Attack boost for allies",
+          "Snow weather: +50% Defense for Ice types (Mega Froslass synergy)",
+          "Sand weather: +50% SpDef for Rock types",
+          "Blizzard 100% accuracy in snow, Thunder/Hurricane 100% in rain",
+          "Multiscale (Mega Dragonite): halves damage at full HP",
         ],
       },
       {
@@ -92,6 +96,7 @@ const CHANGELOGS: Record<string, { description: string; entries: ChangelogEntry[
           "Damage Calculator: Mega form stats, types, and abilities now resolve automatically",
           "Battle replays show Mega Evolution, Stance Change, Disguise, and Illusion events",
           "Improved battle accuracy with 28/28 QA tests passing",
+          "Fixed Clefable sets: uses Magic Guard instead of Friend Guard (Clefairy-only)",
         ],
       },
       {
