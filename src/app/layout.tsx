@@ -6,6 +6,7 @@ import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { LazyParticles } from "@/components/lazy-particles";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { MotionProvider } from "@/components/motion-provider";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -100,12 +101,14 @@ export default function RootLayout({
         </Script>
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <LazyParticles />
-        <Navbar />
-        <Suspense>
-          <main className="flex-1 relative z-10">{children}</main>
-        </Suspense>
-        <ThemeToggle />
+        <MotionProvider>
+          <LazyParticles />
+          <Navbar />
+          <Suspense>
+            <main className="flex-1 relative z-10">{children}</main>
+          </Suspense>
+          <ThemeToggle />
+        </MotionProvider>
       </body>
     </html>
   );
