@@ -11,7 +11,7 @@ import {
   GraduationCap,
   Heart,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 
@@ -26,11 +26,11 @@ const NAV_ITEMS = [
 
 export function Navbar() {
   const pathname = usePathname();
-  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // Close mobile nav on route change
   useEffect(() => {
-    if (detailsRef.current) detailsRef.current.removeAttribute("open");
+    setMobileOpen(false);
   }, [pathname]);
 
   return (
@@ -92,27 +92,35 @@ export function Navbar() {
                 <span>Support Us</span>
               </a>
             </nav>
+            {/* Mobile hamburger button — same pattern as ThemeToggle */}
+            <button
+              onClick={() => setMobileOpen((o) => !o)}
+              className="md:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg cursor-pointer touch-manipulation"
+              aria-label="Toggle menu"
+            >
+              {mobileOpen ? (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Mobile nav — <details> is a native browser disclosure widget */}
-        <details ref={detailsRef} id="mobile-nav-details" className="md:hidden">
-          <summary className="nav-summary list-none absolute top-3 right-4 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg cursor-pointer touch-manipulation [&::-webkit-details-marker]:hidden">
-            <svg className="nav-icon-open w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-            <svg className="nav-icon-close w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </summary>
-          <nav className="border-t border-gray-200/60 px-4 py-3 space-y-1">
+        {/* Mobile nav panel */}
+        {mobileOpen && (
+          <nav className="md:hidden border-t border-gray-200/60 px-4 py-3 space-y-1">
             {NAV_ITEMS.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => trackEvent("nav_click", "navigation", `mobile_${item.label}`)}
+                  onClick={() => { setMobileOpen(false); trackEvent("nav_click", "navigation", `mobile_${item.label}`); }}
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
                     isActive
@@ -136,7 +144,7 @@ export function Navbar() {
               Support Us
             </a>
           </nav>
-        </details>
+        )}
       </header>
 
       {/* Spacer for fixed navbar */}

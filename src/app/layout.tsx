@@ -81,11 +81,7 @@ export default function RootLayout({
             __html: `try{if(localStorage.getItem('championslab-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}`,
           }}
         />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `document.addEventListener('click',function(e){var d=document.getElementById('mobile-nav-details');if(d&&d.open&&e.target.closest('#mobile-nav-details nav a'))d.removeAttribute('open')})`,
-          }}
-        />
+
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-NVYVM8YJZN"
           strategy="afterInteractive"
