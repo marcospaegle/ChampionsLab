@@ -16,6 +16,10 @@ const CHANGELOGS: Record<string, { description: string; entries: ChangelogEntry[
       {
         date: "01/04/2026",
         items: [
+          "Performance: removed framer-motion from critical bundle — ~100KB less JavaScript on page load",
+          "Instant hamburger menu: native browser toggle, zero JS delay on mobile",
+          "Mobile navigation responds immediately — no more 3-4 second wait",
+          "Lazy-loaded background particle animations — won't block page interaction",
           "Fixed 46 missing moves across Pokémon movepools",
           "Added Shed Tail to Orthworm",
         ],
@@ -59,6 +63,14 @@ const CHANGELOGS: Record<string, { description: string; entries: ChangelogEntry[
   meta: {
     description: "Thanks for the support - we're updating the website as fast as possible to adapt to everything new from Pokémon Champions!",
     entries: [
+      {
+        date: "01/04/2026",
+        items: [
+          "Performance: removed framer-motion from initial bundle — ~100KB smaller page loads",
+          "Instant mobile navigation: hamburger menu works immediately on load",
+          "Fixed mobile layout overflow and viewport sizing",
+        ],
+      },
       {
         date: "31/03/2026",
         items: [
@@ -105,6 +117,11 @@ const CHANGELOGS: Record<string, { description: string; entries: ChangelogEntry[
           "Fixed dropdown scroll bug: scrolling inside dropdown no longer closes it",
           "Damage calc dropdowns open upward by default, downward when results section is visible",
           "Mega stones now appear in item dropdown for all Mega-capable Pokémon",
+          "Battle Bot edit modal: mobile-optimized (below navbar, scrollable, tap outside to close)",
+          "Battle Bot mobile layout: fixed card overflow, reduced padding for small screens",
+          "Removed x-axis animations that caused mobile viewport zoom/overflow",
+          "Performance: ~100KB less JS on page load (framer-motion removed from critical bundle)",
+          "Instant hamburger menu on mobile — no more 3-4 second delay",
         ],
       },
       {
@@ -184,6 +201,13 @@ const CHANGELOGS: Record<string, { description: string; entries: ChangelogEntry[
           "Fixed 46 missing moves across Pokémon movepools (Sucker Punch, Fake Out, Iron Head, King's Shield, and more)",
           "Added Shed Tail to Orthworm's movepool and battle engine",
           "All competitive set moves now correctly available in team builder",
+          "MEGA badge redesigned: compact, translucent styling",
+          "Buttons renamed for clarity: \"New Team / Clear\" and \"My Teams / Load\"",
+          "Save now updates existing team instead of creating duplicates",
+          "Blue highlight on selected team slot",
+          "Loading prebuilt/meta/imported team creates a new save instead of overwriting",
+          "Performance: ~100KB less JS on page load (framer-motion removed from bundle)",
+          "Instant mobile hamburger menu — no more 3-4 second delay",
           "Damage calculator dropdowns upgraded with search/filter (moves, items, abilities)",
           "Fixed dropdown scroll bug: scrolling inside options no longer closes it",
           "Dropdowns open upward by default, switch to downward when results section appears",
@@ -229,6 +253,13 @@ const CHANGELOGS: Record<string, { description: string; entries: ChangelogEntry[
   learn: {
     description: "Thanks for the support - we're updating the website as fast as possible to adapt to everything new from Pokémon Champions!",
     entries: [
+      {
+        date: "01/04/2026",
+        items: [
+          "Performance: instant mobile navigation — ~100KB less JavaScript",
+          "Hamburger menu responds immediately on page load",
+        ],
+      },
       {
         date: "29/03/2026",
         items: [
