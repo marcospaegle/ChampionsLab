@@ -13,6 +13,7 @@ const SHARED_ENTRIES: ChangelogEntry[] = [
   {
     date: "05/04/2026",
     items: [
+      "Added 13 missing held items: Power Herb, Ability Shield, terrain Seeds, Normal Gem, Silk Scarf, and more",
       "Added Tauros (#128) — Normal-type physical attacker with Intimidate, full movepool and competitive sets",
       "Added Castform (#351) — Weather Pokémon with Forecast ability, weather-based sets for rain, sun, and hail",
       "Mega Pokémon now have a Pre-Mega Ability selector (e.g. Intimidate before Mega Gyarados)",
