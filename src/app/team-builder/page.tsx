@@ -1446,7 +1446,7 @@ export default function TeamBuilderPage() {
                             {slot.item && <div className="text-[8px] text-amber-700 bg-amber-50 rounded px-1 py-0.5 truncate font-medium">{slot.item}</div>}
                             {slot.nature && <div className="text-[8px] text-violet-600 truncate">{slot.nature}</div>}
                             <div className="space-y-0">
-                              {slot.moves.slice(0, 4).map((m) => (
+                              {slot.moves.slice(0, 4).filter(Boolean).map((m) => (
                                 <div key={m} className="text-[9px] text-muted-foreground truncate">• {m}</div>
                               ))}
                             </div>

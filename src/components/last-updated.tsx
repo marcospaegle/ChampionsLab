@@ -11,6 +11,12 @@ interface ChangelogEntry {
 
 const SHARED_ENTRIES: ChangelogEntry[] = [
   {
+    date: "05/04/2026",
+    items: [
+      "Fixed empty move bullet points appearing after clearing moves in Team Builder",
+    ],
+  },
+  {
     date: "03/04/2026",
     items: [
       "New Champions Lab logo! (Thanks to Noct 🎨)",
