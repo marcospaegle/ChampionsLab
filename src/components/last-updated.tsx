@@ -11,17 +11,16 @@ interface ChangelogEntry {
 
 const SHARED_ENTRIES: ChangelogEntry[] = [
   {
-    date: "07/04/2026",
+    date: "06/04/2026",
     items: [
+      "New VGC Tournament Calendar — auto-fetched from official Pokémon CMS (Regionals, Internationals, Worlds, Nationals)",
+      "Community tournaments from Limitless TCG integrated as a new tier with live registration counts",
+      "Navbar breakpoint raised to 1140px — mobile hamburger menu now covers tablet and mid-width screens",
+      "Instant-tap hamburger button styled as invisible inline icon (no glass pill, no delay)",
       "New font system: Sora for headings, Inter for body text",
       "New emerald/teal/cyan color palette across all pages (replaced violet)",
       "PokéSchool expanded with full Champions Lab Features Guide: Pokedex, Team Builder, Team Tester, Battle Bot, Damage Calculator, and META Analysis walkthroughs",
       "PokéSchool now has 9 chapters and 40+ lessons covering VGC fundamentals through advanced techniques",
-    ],
-  },
-  {
-    date: "06/04/2026",
-    items: [
       "Comprehensive dark mode fix across Team Tester — all backgrounds, borders, text, bar tracks, badges, and flowchart nodes now properly readable",
       "Dark mode fix for Damage Calculator — header gradients, dashed borders, stat bars, and KO badges",
       "Team Tester: clickable lead combos update the Strategy Flowchart dynamically",
