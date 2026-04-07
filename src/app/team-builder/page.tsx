@@ -848,6 +848,11 @@ export default function TeamBuilderPage() {
     defensiveResists[atkType] = resistCount;
   });
 
+  const matchesPokemonName = (pokemon: ChampionsPokemon, name: string): boolean => {
+    const candidate = name.toLowerCase();
+    return pokemon.name.toLowerCase() === candidate || pokemon.showdownName?.toLowerCase() === candidate;
+  };
+
   // Import from Pokepaste format
   const importPokepaste = (text: string) => {
     trackEvent("import_pokepaste", "team_builder");
@@ -884,7 +889,7 @@ export default function TeamBuilderPage() {
         pokeName = megaPlain[1].trim();
         showdownMegaSuffix = "";
       }
-      const pokemon = POKEMON_SEED.find(p => p.name.toLowerCase() === pokeName.toLowerCase());
+      const pokemon = POKEMON_SEED.find(p => matchesPokemonName(p, pokeName));
       if (!pokemon) continue;
       let ability: string | undefined;
       let nature: string | undefined;
@@ -985,7 +990,7 @@ export default function TeamBuilderPage() {
       .map((s) => {
         const p = s.pokemon!;
         // Use Showdown mega naming for mega Pokemon (e.g., Charizard-Mega-Y)
-        let exportName = p.name;
+        let exportName = p.showdownName ?? p.name;
         if (s.isMega && p.hasMega) {
           const megaForms = p.forms?.filter(f => f.isMega) ?? [];
           if (megaForms.length > 1) {
