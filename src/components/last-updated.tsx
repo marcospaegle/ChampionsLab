@@ -149,6 +149,7 @@ const CHANGELOGS: Record<string, { description: string; entries: ChangelogEntry[
   "battle-engine": SHARED_CHANGELOG,
   "team-builder": SHARED_CHANGELOG,
   learn: SHARED_CHANGELOG,
+  events: SHARED_CHANGELOG,
 };
 
 export function LastUpdated({ page }: { page: keyof typeof CHANGELOGS }) {

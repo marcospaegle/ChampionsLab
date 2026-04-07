@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion } from '@/lib/motion';
+import { LastUpdated } from '@/components/last-updated';
 import { cn } from '@/lib/utils';
 import {
   TIER_LABEL,
@@ -243,6 +244,7 @@ export function EventsCalendar({ events, todayISO }: { events: VGCEvent[]; today
           <h1 className="text-3xl font-bold tracking-tight font-heading bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500 bg-clip-text text-transparent">
             VGC Calendar
           </h1>
+          <div className="mt-1"><LastUpdated page="events" /></div>
           <p className="text-sm mt-1 text-muted-foreground">
             {upcomingCount} upcoming event{upcomingCount !== 1 ? 's' : ''}
           </p>
