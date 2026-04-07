@@ -175,7 +175,7 @@ export async function fetchCMSEvents(
     CATEGORIES.map(async (cat) => {
       const url = `${CMS_BASE}?url=/site/components/events/en-us/${cat}/${seasonYear}/`;
       try {
-        const res = await fetch(url, { next: { revalidate: 3600 } });
+        const res = await fetch(url, { next: { revalidate: 86400 } });
         if (!res.ok) return [];
         const items: CMSItem[] = await res.json();
         return items
@@ -210,7 +210,7 @@ export async function fetchLimitlessTournaments(
   try {
     const res = await fetch(
       'https://play.limitlesstcg.com/tournaments/upcoming?game=VGC',
-      { next: { revalidate: 3600 } },
+      { next: { revalidate: 86400 } },
     );
     if (!res.ok) return [];
     const html = await res.text();

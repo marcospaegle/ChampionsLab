@@ -19,12 +19,16 @@ import { trackEvent } from "@/lib/analytics";
 const NAV_ITEMS = [
   { href: "/", label: "Pokédex", icon: Grid3X3 },
   { href: "/team-builder", label: "Team Builder", icon: Users },
-  { href: "/meta", label: "Meta", icon: TrendingUp },
   { href: "/battle-bot", label: "Battle Bot", icon: Swords },
+  { href: "/meta", label: "Meta", icon: TrendingUp },
   { href: "/events", label: "Tournaments", icon: CalendarDays },
   { href: "/learn", label: "PokéSchool", icon: GraduationCap },
   { href: "/about", label: "About", icon: Heart },
 ];
+
+// First 3 items shown in the bar at tablet widths (800–1139px)
+const PRIMARY_NAV = NAV_ITEMS.slice(0, 3);
+const SECONDARY_NAV = NAV_ITEMS.slice(3);
 
 export function Navbar() {
   const pathname = usePathname();
@@ -61,7 +65,7 @@ export function Navbar() {
               </div>
             </Link>
 
-            {/* Desktop Nav */}
+            {/* Desktop Nav — all items, ≥1140px */}
             <nav className="hidden desktop:flex items-center gap-1">
               {NAV_ITEMS.map((item) => {
                 const isActive = pathname === item.href;
@@ -93,13 +97,38 @@ export function Navbar() {
                 <span>Support Us</span>
               </a>
             </nav>
+
+            {/* Tablet Nav — primary items only, 800–1139px */}
+            <nav className="tablet-nav items-center gap-1">
+              {PRIMARY_NAV.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => trackEvent("nav_click", "navigation", item.label)}
+                    className={cn(
+                      "relative px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap",
+                      isActive
+                        ? "text-foreground bg-gray-900/[0.05] border border-gray-900/[0.08]"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
         </div>
 
         {/* Mobile nav panel — visibility controlled by body.mobile-open class (set by inline script in layout) */}
         <nav className="mobile-nav-panel border-t border-gray-200/60 px-4 py-3 space-y-1">
+          {/* All items shown < 800px, only secondary shown 800–1139px */}
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href;
+            const isPrimary = PRIMARY_NAV.includes(item);
             return (
               <Link
                 key={item.href}
@@ -107,6 +136,7 @@ export function Navbar() {
                 onClick={() => trackEvent("nav_click", "navigation", `mobile_${item.label}`)}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                  isPrimary && "tablet-hide-item",
                   isActive
                     ? "bg-gray-900/[0.05] text-foreground"
                     : "text-muted-foreground hover:text-foreground hover:bg-gray-900/[0.03]"
