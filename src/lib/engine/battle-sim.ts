@@ -497,6 +497,10 @@ function evaluateMoveOption(
     for (let i = 0; i < targets.length; i++) {
       const t = targets[i];
       if (!t || t.isFainted) continue;
+      
+      // Ghost types are immune to Normal-type Fake Out (unless user has Scrappy)
+      if (t.types.includes("ghost") && user.ability !== "Scrappy") continue;
+      
       score = 55;
       
       // Target the biggest threat

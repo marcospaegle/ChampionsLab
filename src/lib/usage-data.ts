@@ -19,15 +19,15 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
     { name: "Sun Attacker", nature: "Timid", ability: "Solar Power", item: "Choice Specs", moves: ["Heat Wave", "Air Slash", "Solar Beam", "Overheat"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
     { name: "Mega Y Sweeper", nature: "Modest", ability: "Drought", item: "Charizardite Y", moves: ["Heat Wave", "Solar Beam", "Overheat", "Protect"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
     { name: "Mega X Physical", nature: "Adamant", ability: "Tough Claws", item: "Charizardite X", moves: ["Flare Blitz", "Dragon Claw", "Thunder Punch", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
-    { name: "Bulky Mega Y", nature: "Modest", ability: "Drought", item: "Charizardite Y", moves: ["Heat Wave", "Solar Beam", "Tailwind", "Protect"], sp: { hp: 20, attack: 0, defense: 4, spAtk: 32, spDef: 2, speed: 8 } },
+    { name: "Bulky Mega Y", nature: "Modest", ability: "Drought", item: "Charizardite Y", moves: ["Heat Wave", "Solar Beam", "Roost", "Protect"], sp: { hp: 20, attack: 0, defense: 4, spAtk: 32, spDef: 2, speed: 8 } },
     { name: "Life Orb Attacker", nature: "Timid", ability: "Blaze", item: "Life Orb", moves: ["Heat Wave", "Air Slash", "Focus Blast", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
   ],
 
   // Blastoise (id: 9)
   9: [
     { name: "Mega Launcher", nature: "Modest", ability: "Mega Launcher", item: "Blastoisinite", moves: ["Water Pulse", "Dark Pulse", "Aura Sphere", "Protect"], sp: { hp: 20, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 12 } },
-    { name: "Follow Me Support", nature: "Bold", ability: "Rain Dish", item: "Sitrus Berry", moves: ["Scald", "Ice Beam", "Follow Me", "Protect"], sp: { hp: 32, attack: 0, defense: 20, spAtk: 0, spDef: 14, speed: 0 } },
-    { name: "Assault Vest Tank", nature: "Modest", ability: "Torrent", item: "Assault Vest", moves: ["Scald", "Ice Beam", "Dark Pulse", "Aura Sphere"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 0 } },
+    { name: "Follow Me Support", nature: "Bold", ability: "Rain Dish", item: "Sitrus Berry", moves: ["Surf", "Ice Beam", "Endure", "Protect"], sp: { hp: 32, attack: 0, defense: 20, spAtk: 0, spDef: 14, speed: 0 } },
+    { name: "Assault Vest Tank", nature: "Modest", ability: "Torrent", item: "Assault Vest", moves: ["Surf", "Ice Beam", "Dark Pulse", "Aura Sphere"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 0 } },
     { name: "Shell Smash", nature: "Modest", ability: "Torrent", item: "White Herb", moves: ["Shell Smash", "Hydro Pump", "Ice Beam", "Protect"], sp: { hp: 2, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 32 } },
   ],
 
@@ -41,25 +41,25 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
 
   // Raichu (id: 26)
   26: [
-    { name: "Fast Attacker", nature: "Timid", ability: "Lightning Rod", item: "Life Orb", moves: ["Thunderbolt", "Psychic", "Surf", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
+    { name: "Fast Attacker", nature: "Timid", ability: "Lightning Rod", item: "Life Orb", moves: ["Thunderbolt", "Agility", "Surf", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
     { name: "Fake Out Support", nature: "Jolly", ability: "Lightning Rod", item: "Focus Sash", moves: ["Fake Out", "Volt Switch", "Nuzzle", "Protect"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 30, spDef: 0, speed: 32 } },
-    { name: "Mega X Physical", nature: "Jolly", ability: "Volt Rush", item: "Raichunite X", moves: ["Volt Tackle", "Close Combat", "Fake Out", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
-    { name: "Mega Y Special", nature: "Timid", ability: "Mind Surge", item: "Raichunite Y", moves: ["Thunderbolt", "Psychic", "Focus Blast", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
+    { name: "Mega X Physical", nature: "Jolly", ability: "Volt Rush", item: "Raichunite X", moves: ["Volt Tackle", "Focus Punch", "Fake Out", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
+    { name: "Mega Y Special", nature: "Timid", ability: "Mind Surge", item: "Raichunite Y", moves: ["Thunderbolt", "Agility", "Focus Blast", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
   ],
 
   // Clefable (id: 36)
   36: [
     { name: "Follow Me Support", nature: "Bold", ability: "Magic Guard", item: "Sitrus Berry", moves: ["Follow Me", "Moonblast", "Helping Hand", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
-    { name: "Trick Room Setter", nature: "Relaxed", ability: "Magic Guard", item: "Mental Herb", moves: ["Trick Room", "Follow Me", "Moonblast", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
+    { name: "Trick Room Setter", nature: "Relaxed", ability: "Magic Guard", item: "Mental Herb", moves: ["Amnesia", "Follow Me", "Moonblast", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
     { name: "Offensive Follow Me", nature: "Modest", ability: "Magic Guard", item: "Life Orb", moves: ["Moonblast", "Flamethrower", "Follow Me", "Protect"], sp: { hp: 20, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 12 } },
-    { name: "Calm Mind Tank", nature: "Bold", ability: "Unaware", item: "Leftovers", moves: ["Calm Mind", "Moonblast", "Soft-Boiled", "Protect"], sp: { hp: 32, attack: 0, defense: 20, spAtk: 0, spDef: 14, speed: 0 } },
+    { name: "Calm Mind Tank", nature: "Bold", ability: "Unaware", item: "Leftovers", moves: ["Calm Mind", "Moonblast", "Moonlight", "Protect"], sp: { hp: 32, attack: 0, defense: 20, spAtk: 0, spDef: 14, speed: 0 } },
     { name: "Mega Pixie Veil", nature: "Modest", ability: "Pixie Veil", item: "Clefablite", moves: ["Moonblast", "Dazzling Gleam", "Follow Me", "Protect"], sp: { hp: 20, attack: 0, defense: 2, spAtk: 32, spDef: 12, speed: 0 } },
   ],
 
   // Ninetales (id: 38)
   38: [
     { name: "Sun Setter", nature: "Timid", ability: "Drought", item: "Heat Rock", moves: ["Heat Wave", "Solar Beam", "Will-O-Wisp", "Protect"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 30, spDef: 0, speed: 32 } },
-    { name: "Offensive Sun", nature: "Timid", ability: "Drought", item: "Choice Specs", moves: ["Heat Wave", "Solar Beam", "Overheat", "Psychic"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
+    { name: "Offensive Sun", nature: "Timid", ability: "Drought", item: "Choice Specs", moves: ["Heat Wave", "Solar Beam", "Overheat", "Extrasensory"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
     { name: "Bulky Sun", nature: "Calm", ability: "Drought", item: "Sitrus Berry", moves: ["Heat Wave", "Will-O-Wisp", "Sunny Day", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
     { name: "Encore Lead", nature: "Timid", ability: "Drought", item: "Focus Sash", moves: ["Heat Wave", "Encore", "Will-O-Wisp", "Protect"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 30, spDef: 0, speed: 32 } },
   ],
@@ -83,10 +83,10 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
 
   // Kangaskhan (id: 115)
   115: [
-    { name: "Mega Parental Bond", nature: "Adamant", ability: "Parental Bond", item: "Kangaskhanite", moves: ["Return", "Sucker Punch", "Power-Up Punch", "Protect"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
-    { name: "Bulky Mega", nature: "Adamant", ability: "Parental Bond", item: "Kangaskhanite", moves: ["Return", "Sucker Punch", "Fake Out", "Protect"], sp: { hp: 20, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 12 } },
+    { name: "Mega Parental Bond", nature: "Adamant", ability: "Parental Bond", item: "Kangaskhanite", moves: ["Body Slam", "Sucker Punch", "Drain Punch", "Protect"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
+    { name: "Bulky Mega", nature: "Adamant", ability: "Parental Bond", item: "Kangaskhanite", moves: ["Body Slam", "Sucker Punch", "Fake Out", "Protect"], sp: { hp: 20, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 12 } },
     { name: "Fake Out Lead", nature: "Jolly", ability: "Inner Focus", item: "Silk Scarf", moves: ["Fake Out", "Double-Edge", "Sucker Punch", "Protect"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
-    { name: "Speed Control", nature: "Jolly", ability: "Parental Bond", item: "Kangaskhanite", moves: ["Fake Out", "Return", "Icy Wind", "Protect"], sp: { hp: 4, attack: 30, defense: 0, spAtk: 0, spDef: 0, speed: 32 } },
+    { name: "Speed Control", nature: "Jolly", ability: "Parental Bond", item: "Kangaskhanite", moves: ["Fake Out", "Body Slam", "Icy Wind", "Protect"], sp: { hp: 4, attack: 30, defense: 0, spAtk: 0, spDef: 0, speed: 32 } },
   ],
 
   // Starmie (id: 121)
@@ -100,10 +100,10 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
 
   // Pinsir (id: 127)
   127: [
-    { name: "Mega Aerilate", nature: "Jolly", ability: "Aerilate", item: "Pinsirite", moves: ["Return", "Close Combat", "Quick Attack", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
-    { name: "Swords Dance Mega", nature: "Adamant", ability: "Aerilate", item: "Pinsirite", moves: ["Swords Dance", "Return", "Quick Attack", "Protect"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
+    { name: "Mega Aerilate", nature: "Jolly", ability: "Aerilate", item: "Pinsirite", moves: ["Body Slam", "Close Combat", "Quick Attack", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
+    { name: "Swords Dance Mega", nature: "Adamant", ability: "Aerilate", item: "Pinsirite", moves: ["Swords Dance", "Body Slam", "Quick Attack", "Protect"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
     { name: "Choice Scarf", nature: "Jolly", ability: "Moxie", item: "Choice Scarf", moves: ["Close Combat", "X-Scissor", "Earthquake", "Rock Slide"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
-    { name: "Bulky Mega", nature: "Adamant", ability: "Aerilate", item: "Pinsirite", moves: ["Return", "Close Combat", "Feint", "Protect"], sp: { hp: 20, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 12 } },
+    { name: "Bulky Mega", nature: "Adamant", ability: "Aerilate", item: "Pinsirite", moves: ["Body Slam", "Close Combat", "Feint", "Protect"], sp: { hp: 20, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 12 } },
   ],
 
   // Tauros (id: 128)
@@ -126,8 +126,8 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
   136: [
     { name: "Trick Room Attacker", nature: "Brave", ability: "Flash Fire", item: "Choice Band", moves: ["Flare Blitz", "Superpower", "Quick Attack", "Double-Edge"], sp: { hp: 32, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 0 } },
     { name: "Flame Charge Sweeper", nature: "Adamant", ability: "Flash Fire", item: "Life Orb", moves: ["Flare Blitz", "Flame Charge", "Superpower", "Protect"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
-    { name: "Bulky Attacker", nature: "Adamant", ability: "Flash Fire", item: "Assault Vest", moves: ["Flare Blitz", "Superpower", "Iron Tail", "Quick Attack"], sp: { hp: 32, attack: 32, defense: 0, spAtk: 0, spDef: 2, speed: 0 } },
-    { name: "Sun Sweeper", nature: "Adamant", ability: "Flash Fire", item: "Life Orb", moves: ["Flare Blitz", "Iron Tail", "Will-O-Wisp", "Protect"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
+    { name: "Bulky Attacker", nature: "Adamant", ability: "Flash Fire", item: "Assault Vest", moves: ["Flare Blitz", "Superpower", "Double-Edge", "Quick Attack"], sp: { hp: 32, attack: 32, defense: 0, spAtk: 0, spDef: 2, speed: 0 } },
+    { name: "Sun Sweeper", nature: "Adamant", ability: "Flash Fire", item: "Life Orb", moves: ["Flare Blitz", "Superpower", "Will-O-Wisp", "Protect"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
   ],
 
   // Snorlax (id: 143)
@@ -150,8 +150,8 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
   154: [
     { name: "Mega Support", nature: "Bold", ability: "Mega Sol", item: "Meganiumite", moves: ["Giga Drain", "Leech Seed", "Light Screen", "Protect"], sp: { hp: 32, attack: 0, defense: 20, spAtk: 0, spDef: 14, speed: 0 } },
     { name: "Trick Room Support", nature: "Relaxed", ability: "Overgrow", item: "Sitrus Berry", moves: ["Giga Drain", "Body Slam", "Heal Pulse", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 2, spDef: 0, speed: 0 } },
-    { name: "Sun Bulk", nature: "Bold", ability: "Leaf Guard", item: "Leftovers", moves: ["Giga Drain", "Leech Seed", "Aromatherapy", "Protect"], sp: { hp: 32, attack: 0, defense: 20, spAtk: 0, spDef: 14, speed: 0 } },
-    { name: "Offensive", nature: "Modest", ability: "Overgrow", item: "Life Orb", moves: ["Energy Ball", "Ancient Power", "Dragon Pulse", "Protect"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
+    { name: "Sun Bulk", nature: "Bold", ability: "Leaf Guard", item: "Leftovers", moves: ["Giga Drain", "Leech Seed", "Grassy Terrain", "Protect"], sp: { hp: 32, attack: 0, defense: 20, spAtk: 0, spDef: 14, speed: 0 } },
+    { name: "Offensive", nature: "Modest", ability: "Overgrow", item: "Life Orb", moves: ["Energy Ball", "Ancient Power", "Outrage", "Protect"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
   ],
 
   // Feraligatr (id: 160)
@@ -172,10 +172,10 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
 
   // Politoed (id: 186)
   186: [
-    { name: "Rain Setter", nature: "Bold", ability: "Drizzle", item: "Sitrus Berry", moves: ["Scald", "Icy Wind", "Helping Hand", "Protect"], sp: { hp: 32, attack: 0, defense: 20, spAtk: 0, spDef: 14, speed: 0 } },
-    { name: "Offensive Rain", nature: "Modest", ability: "Drizzle", item: "Choice Specs", moves: ["Hydro Pump", "Ice Beam", "Focus Blast", "Scald"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
-    { name: "Encore Support", nature: "Bold", ability: "Drizzle", item: "Damp Rock", moves: ["Scald", "Encore", "Perish Song", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
-    { name: "Bulky Pivot", nature: "Calm", ability: "Drizzle", item: "Sitrus Berry", moves: ["Scald", "Ice Beam", "Helping Hand", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
+    { name: "Rain Setter", nature: "Bold", ability: "Drizzle", item: "Sitrus Berry", moves: ["Surf", "Icy Wind", "Helping Hand", "Protect"], sp: { hp: 32, attack: 0, defense: 20, spAtk: 0, spDef: 14, speed: 0 } },
+    { name: "Offensive Rain", nature: "Modest", ability: "Drizzle", item: "Choice Specs", moves: ["Hydro Pump", "Ice Beam", "Focus Blast", "Surf"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
+    { name: "Encore Support", nature: "Bold", ability: "Drizzle", item: "Damp Rock", moves: ["Surf", "Encore", "Perish Song", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
+    { name: "Bulky Pivot", nature: "Calm", ability: "Drizzle", item: "Sitrus Berry", moves: ["Surf", "Ice Beam", "Helping Hand", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
   ],
 
   // Umbreon (id: 197)
@@ -199,7 +199,7 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
     { name: "Mega Skill Link", nature: "Adamant", ability: "Skill Link", item: "Heracronite", moves: ["Pin Missile", "Rock Blast", "Close Combat", "Protect"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
     { name: "Choice Scarf", nature: "Jolly", ability: "Moxie", item: "Choice Scarf", moves: ["Close Combat", "Megahorn", "Rock Slide", "Earthquake"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
     { name: "Guts Sweeper", nature: "Adamant", ability: "Guts", item: "Flame Orb", moves: ["Close Combat", "Megahorn", "Facade", "Protect"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
-    { name: "Bulky Mega", nature: "Adamant", ability: "Skill Link", item: "Heracronite", moves: ["Pin Missile", "Rock Blast", "Arm Thrust", "Protect"], sp: { hp: 20, attack: 32, defense: 2, spAtk: 0, spDef: 12, speed: 0 } },
+    { name: "Bulky Mega", nature: "Adamant", ability: "Skill Link", item: "Heracronite", moves: ["Pin Missile", "Rock Blast", "Close Combat", "Protect"], sp: { hp: 20, attack: 32, defense: 2, spAtk: 0, spDef: 12, speed: 0 } },
   ],
 
   // Skarmory (id: 227)
@@ -228,10 +228,10 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
 
   // Pelipper (id: 279)
   279: [
-    { name: "Rain Setter", nature: "Bold", ability: "Drizzle", item: "Damp Rock", moves: ["Scald", "Hurricane", "Tailwind", "Protect"], sp: { hp: 32, attack: 0, defense: 20, spAtk: 14, spDef: 0, speed: 0 } },
-    { name: "Offensive Rain", nature: "Modest", ability: "Drizzle", item: "Choice Specs", moves: ["Weather Ball", "Hurricane", "Scald", "U-turn"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
-    { name: "Bulky Pivot", nature: "Bold", ability: "Drizzle", item: "Sitrus Berry", moves: ["Scald", "Hurricane", "U-turn", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 2, spDef: 0, speed: 0 } },
-    { name: "Wide Guard", nature: "Calm", ability: "Drizzle", item: "Sitrus Berry", moves: ["Scald", "Wide Guard", "Tailwind", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
+    { name: "Rain Setter", nature: "Bold", ability: "Drizzle", item: "Damp Rock", moves: ["Surf", "Hurricane", "Tailwind", "Protect"], sp: { hp: 32, attack: 0, defense: 20, spAtk: 14, spDef: 0, speed: 0 } },
+    { name: "Offensive Rain", nature: "Modest", ability: "Drizzle", item: "Choice Specs", moves: ["Weather Ball", "Hurricane", "Surf", "U-turn"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
+    { name: "Bulky Pivot", nature: "Bold", ability: "Drizzle", item: "Sitrus Berry", moves: ["Surf", "Hurricane", "U-turn", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 2, spDef: 0, speed: 0 } },
+    { name: "Wide Guard", nature: "Calm", ability: "Drizzle", item: "Sitrus Berry", moves: ["Surf", "Wide Guard", "Tailwind", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
   ],
 
   // Gardevoir (id: 282)
@@ -253,9 +253,9 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
   // Altaria (id: 334)
   334: [
     { name: "Mega Pixilate", nature: "Modest", ability: "Pixilate", item: "Altarianite", moves: ["Hyper Voice", "Fire Blast", "Tailwind", "Protect"], sp: { hp: 20, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 14 } },
-    { name: "Dragon Dance Mega", nature: "Adamant", ability: "Pixilate", item: "Altarianite", moves: ["Dragon Dance", "Return", "Earthquake", "Protect"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
+    { name: "Dragon Dance Mega", nature: "Adamant", ability: "Pixilate", item: "Altarianite", moves: ["Dragon Dance", "Body Slam", "Earthquake", "Protect"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
     { name: "Cotton Guard", nature: "Bold", ability: "Natural Cure", item: "Sitrus Berry", moves: ["Hyper Voice", "Cotton Guard", "Roost", "Protect"], sp: { hp: 32, attack: 0, defense: 20, spAtk: 14, spDef: 0, speed: 0 } },
-    { name: "Bulky Mega", nature: "Calm", ability: "Pixilate", item: "Altarianite", moves: ["Hyper Voice", "Fire Blast", "Heal Bell", "Protect"], sp: { hp: 32, attack: 0, defense: 0, spAtk: 20, spDef: 14, speed: 0 } },
+    { name: "Bulky Mega", nature: "Calm", ability: "Pixilate", item: "Altarianite", moves: ["Hyper Voice", "Fire Blast", "Acrobatics", "Protect"], sp: { hp: 32, attack: 0, defense: 0, spAtk: 20, spDef: 14, speed: 0 } },
   ],
 
   // Milotic (id: 350)
@@ -271,7 +271,7 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
     { name: "Rain Attacker", nature: "Modest", ability: "Forecast", item: "Mystic Water", moves: ["Weather Ball", "Rain Dance", "Thunder", "Protect"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
     { name: "Sun Attacker", nature: "Modest", ability: "Forecast", item: "Charcoal", moves: ["Weather Ball", "Sunny Day", "Solar Beam", "Protect"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
     { name: "Weather Support", nature: "Timid", ability: "Forecast", item: "Focus Sash", moves: ["Weather Ball", "Rain Dance", "Thunder Wave", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
-    { name: "Hail Sweeper", nature: "Modest", ability: "Forecast", item: "Never-Melt Ice", moves: ["Weather Ball", "Hail", "Thunderbolt", "Protect"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
+    { name: "Hail Sweeper", nature: "Modest", ability: "Forecast", item: "Never-Melt Ice", moves: ["Weather Ball", "Snowscape", "Thunderbolt", "Protect"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
   ],
 
   // Absol (id: 359)
@@ -293,10 +293,10 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
 
   // Empoleon (id: 395)
   395: [
-    { name: "Competitive Lead", nature: "Modest", ability: "Competitive", item: "Sitrus Berry", moves: ["Scald", "Flash Cannon", "Icy Wind", "Protect"], sp: { hp: 20, attack: 0, defense: 0, spAtk: 32, spDef: 14, speed: 0 } },
-    { name: "Assault Vest", nature: "Modest", ability: "Defiant", item: "Assault Vest", moves: ["Scald", "Flash Cannon", "Ice Beam", "Grass Knot"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 0 } },
-    { name: "Bulky Support", nature: "Calm", ability: "Competitive", item: "Leftovers", moves: ["Scald", "Flash Cannon", "Roar", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
-    { name: "Offensive", nature: "Timid", ability: "Competitive", item: "Choice Specs", moves: ["Hydro Pump", "Flash Cannon", "Ice Beam", "Scald"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
+    { name: "Competitive Lead", nature: "Modest", ability: "Competitive", item: "Sitrus Berry", moves: ["Surf", "Flash Cannon", "Icy Wind", "Protect"], sp: { hp: 20, attack: 0, defense: 0, spAtk: 32, spDef: 14, speed: 0 } },
+    { name: "Assault Vest", nature: "Modest", ability: "Defiant", item: "Assault Vest", moves: ["Surf", "Flash Cannon", "Ice Beam", "Grass Knot"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 0 } },
+    { name: "Bulky Support", nature: "Calm", ability: "Competitive", item: "Leftovers", moves: ["Surf", "Flash Cannon", "Roar", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
+    { name: "Offensive", nature: "Timid", ability: "Competitive", item: "Choice Specs", moves: ["Hydro Pump", "Flash Cannon", "Ice Beam", "Surf"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
   ],
 
   // Garchomp (id: 445)
@@ -314,7 +314,7 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
     { name: "Mega Special", nature: "Timid", ability: "Adaptability", item: "Lucarionite", moves: ["Aura Sphere", "Flash Cannon", "Vacuum Wave", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
     { name: "Mega Physical", nature: "Jolly", ability: "Adaptability", item: "Lucarionite", moves: ["Close Combat", "Meteor Mash", "Bullet Punch", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
     { name: "Inner Focus Sash", nature: "Timid", ability: "Inner Focus", item: "Focus Sash", moves: ["Aura Sphere", "Flash Cannon", "Vacuum Wave", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
-    { name: "Swords Dance", nature: "Jolly", ability: "Justified", item: "Life Orb", moves: ["Swords Dance", "Close Combat", "Iron Head", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
+    { name: "Swords Dance", nature: "Jolly", ability: "Justified", item: "Life Orb", moves: ["Swords Dance", "Close Combat", "Iron Tail", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
     { name: "Mega Aura Max", nature: "Jolly", ability: "Aura Maximizer", item: "Lucarionite Z", moves: ["Close Combat", "Meteor Mash", "Bullet Punch", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
   ],
 
@@ -352,7 +352,7 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
 
   // Gliscor (id: 472)
   472: [
-    { name: "Poison Heal", nature: "Impish", ability: "Poison Heal", item: "Toxic Orb", moves: ["Earthquake", "Knock Off", "Roost", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
+    { name: "Poison Heal", nature: "Impish", ability: "Poison Heal", item: "Toxic Orb", moves: ["Earthquake", "Knock Off", "Tailwind", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
     { name: "Swords Dance", nature: "Jolly", ability: "Poison Heal", item: "Toxic Orb", moves: ["Swords Dance", "Earthquake", "Acrobatics", "Protect"], sp: { hp: 4, attack: 30, defense: 0, spAtk: 0, spDef: 0, speed: 32 } },
     { name: "Tailwind", nature: "Jolly", ability: "Hyper Cutter", item: "Focus Sash", moves: ["Earthquake", "Rock Slide", "Tailwind", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
     { name: "Offensive", nature: "Adamant", ability: "Poison Heal", item: "Toxic Orb", moves: ["Earthquake", "Knock Off", "Facade", "Protect"], sp: { hp: 20, attack: 32, defense: 2, spAtk: 0, spDef: 12, speed: 0 } },
@@ -368,16 +368,16 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
 
   // Rotom (id: 479)
   479: [
-    { name: "Wash Bulky", nature: "Calm", ability: "Levitate", item: "Sitrus Berry", moves: ["Hydro Pump", "Thunderbolt", "Will-O-Wisp", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
-    { name: "Heat Offensive", nature: "Modest", ability: "Levitate", item: "Choice Specs", moves: ["Overheat", "Thunderbolt", "Volt Switch", "Trick"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
-    { name: "Wash Offensive", nature: "Timid", ability: "Levitate", item: "Life Orb", moves: ["Hydro Pump", "Thunderbolt", "Nasty Plot", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
+    { name: "Wash Bulky", nature: "Calm", ability: "Levitate", item: "Sitrus Berry", moves: ["Charge", "Thunderbolt", "Will-O-Wisp", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
+    { name: "Heat Offensive", nature: "Modest", ability: "Levitate", item: "Choice Specs", moves: ["Charge", "Thunderbolt", "Volt Switch", "Trick"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
+    { name: "Wash Offensive", nature: "Timid", ability: "Levitate", item: "Life Orb", moves: ["Charge", "Thunderbolt", "Nasty Plot", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
     { name: "Will-O-Wisp Pivot", nature: "Bold", ability: "Levitate", item: "Sitrus Berry", moves: ["Thunderbolt", "Will-O-Wisp", "Thunder Wave", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
   ],
 
   // Serperior (id: 497)
   497: [
     { name: "Contrary Sweeper", nature: "Timid", ability: "Contrary", item: "Life Orb", moves: ["Leaf Storm", "Dragon Pulse", "Glare", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
-    { name: "Choice Specs", nature: "Timid", ability: "Contrary", item: "Choice Specs", moves: ["Leaf Storm", "Dragon Pulse", "Hidden Power Fire", "Giga Drain"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
+    { name: "Choice Specs", nature: "Timid", ability: "Contrary", item: "Choice Specs", moves: ["Leaf Storm", "Dragon Pulse", "Energy Ball", "Giga Drain"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
     { name: "Glare Support", nature: "Timid", ability: "Contrary", item: "Focus Sash", moves: ["Leaf Storm", "Glare", "Taunt", "Protect"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 30, spDef: 0, speed: 32 } },
     { name: "Substitute", nature: "Timid", ability: "Contrary", item: "Leftovers", moves: ["Leaf Storm", "Substitute", "Dragon Pulse", "Protect"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 30, spDef: 0, speed: 32 } },
   ],
@@ -395,7 +395,7 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
     { name: "Swords Dance", nature: "Adamant", ability: "Shell Armor", item: "Life Orb", moves: ["Swords Dance", "Liquidation", "Sacred Sword", "Protect"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
     { name: "Special Attacker", nature: "Modest", ability: "Torrent", item: "Choice Specs", moves: ["Hydro Pump", "Ice Beam", "Air Slash", "Grass Knot"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
     { name: "Mixed Attacker", nature: "Naive", ability: "Shell Armor", item: "Life Orb", moves: ["Razor Shell", "Sacred Sword", "Ice Beam", "Protect"], sp: { hp: 0, attack: 20, defense: 0, spAtk: 14, spDef: 0, speed: 32 } },
-    { name: "Bulky Support", nature: "Bold", ability: "Torrent", item: "Sitrus Berry", moves: ["Scald", "Ice Beam", "Helping Hand", "Protect"], sp: { hp: 32, attack: 0, defense: 20, spAtk: 14, spDef: 0, speed: 0 } },
+    { name: "Bulky Support", nature: "Bold", ability: "Torrent", item: "Sitrus Berry", moves: ["Surf", "Ice Beam", "Helping Hand", "Protect"], sp: { hp: 32, attack: 0, defense: 20, spAtk: 14, spDef: 0, speed: 0 } },
   ],
 
   // Excadrill (id: 530)
@@ -441,10 +441,10 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
 
   // Emolga (id: 587)
   587: [
-    { name: "Speed Control", nature: "Timid", ability: "Motor Drive", item: "Focus Sash", moves: ["Nuzzle", "Encore", "Tailwind", "Protect"], sp: { hp: 20, attack: 0, defense: 12, spAtk: 0, spDef: 2, speed: 32 } },
+    { name: "Speed Control", nature: "Timid", ability: "Motor Drive", item: "Focus Sash", moves: ["Nuzzle", "Encore", "Defog", "Protect"], sp: { hp: 20, attack: 0, defense: 12, spAtk: 0, spDef: 2, speed: 32 } },
     { name: "Offensive", nature: "Timid", ability: "Motor Drive", item: "Life Orb", moves: ["Thunderbolt", "Air Slash", "Encore", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
     { name: "U-turn Pivot", nature: "Timid", ability: "Motor Drive", item: "Focus Sash", moves: ["Thunderbolt", "U-turn", "Nuzzle", "Protect"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 30, spDef: 0, speed: 32 } },
-    { name: "Tailwind Lead", nature: "Timid", ability: "Static", item: "Focus Sash", moves: ["Tailwind", "Nuzzle", "Helping Hand", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
+    { name: "Tailwind Lead", nature: "Timid", ability: "Static", item: "Focus Sash", moves: ["Defog", "Nuzzle", "Helping Hand", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
   ],
 
   // Hydreigon (id: 635)
@@ -476,15 +476,15 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
     { name: "Protean Attacker", nature: "Timid", ability: "Protean", item: "Life Orb", moves: ["Hydro Pump", "Dark Pulse", "Ice Beam", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
     { name: "Choice Specs", nature: "Timid", ability: "Protean", item: "Choice Specs", moves: ["Hydro Pump", "Dark Pulse", "Ice Beam", "Water Shuriken"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
     { name: "Mega Ninja", nature: "Timid", ability: "Protean", item: "Greninjite", moves: ["Hydro Pump", "Dark Pulse", "Ice Beam", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
-    { name: "Mat Block Lead", nature: "Jolly", ability: "Protean", item: "Focus Sash", moves: ["Mat Block", "Rock Slide", "Low Kick", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
+    { name: "Mat Block Lead", nature: "Jolly", ability: "Protean", item: "Focus Sash", moves: ["Brick Break", "Rock Slide", "Low Kick", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
     { name: "Physical Attacker", nature: "Jolly", ability: "Protean", item: "Life Orb", moves: ["Waterfall", "Night Slash", "Rock Slide", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
   ],
 
   // Diggersby (id: 660)
   660: [
-    { name: "Huge Power Attacker", nature: "Adamant", ability: "Huge Power", item: "Life Orb", moves: ["Earthquake", "Return", "Quick Attack", "Protect"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
-    { name: "Choice Band", nature: "Adamant", ability: "Huge Power", item: "Choice Band", moves: ["Earthquake", "Return", "Fire Punch", "Quick Attack"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
-    { name: "Trick Room", nature: "Brave", ability: "Huge Power", item: "Assault Vest", moves: ["Earthquake", "Return", "Fire Punch", "Quick Attack"], sp: { hp: 32, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 0 } },
+    { name: "Huge Power Attacker", nature: "Adamant", ability: "Huge Power", item: "Life Orb", moves: ["Earthquake", "Body Slam", "Quick Attack", "Protect"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
+    { name: "Choice Band", nature: "Adamant", ability: "Huge Power", item: "Choice Band", moves: ["Earthquake", "Body Slam", "Fire Punch", "Quick Attack"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
+    { name: "Trick Room", nature: "Brave", ability: "Huge Power", item: "Assault Vest", moves: ["Earthquake", "Body Slam", "Fire Punch", "Quick Attack"], sp: { hp: 32, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 0 } },
     { name: "Swords Dance", nature: "Jolly", ability: "Huge Power", item: "Focus Sash", moves: ["Swords Dance", "Earthquake", "Quick Attack", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
   ],
 
@@ -510,7 +510,7 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
     { name: "Weakness Policy", nature: "Quiet", ability: "Stance Change", item: "Weakness Policy", moves: ["Shadow Ball", "Flash Cannon", "King's Shield", "Shadow Sneak"], sp: { hp: 32, attack: 2, defense: 0, spAtk: 32, spDef: 0, speed: 0 } },
     { name: "Physical Attacker", nature: "Brave", ability: "Stance Change", item: "Life Orb", moves: ["Shadow Claw", "Sacred Sword", "Iron Head", "King's Shield"], sp: { hp: 32, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 0 } },
     { name: "Mixed Attacker", nature: "Quiet", ability: "Stance Change", item: "Life Orb", moves: ["Shadow Ball", "Flash Cannon", "Shadow Sneak", "King's Shield"], sp: { hp: 32, attack: 2, defense: 0, spAtk: 32, spDef: 0, speed: 0 } },
-    { name: "Bulky Shield", nature: "Sassy", ability: "Stance Change", item: "Leftovers", moves: ["Shadow Ball", "King's Shield", "Substitute", "Toxic"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
+    { name: "Bulky Shield", nature: "Sassy", ability: "Stance Change", item: "Leftovers", moves: ["Shadow Ball", "King's Shield", "Substitute", "Flash Cannon"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
   ],
 
   // Sylveon (id: 700)
@@ -548,8 +548,8 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
   // Incineroar (id: 727)
   727: [
     { name: "Intimidate Support", nature: "Careful", ability: "Intimidate", item: "Sitrus Berry", moves: ["Flare Blitz", "Darkest Lariat", "Fake Out", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
-    { name: "Assault Vest", nature: "Adamant", ability: "Intimidate", item: "Assault Vest", moves: ["Flare Blitz", "Darkest Lariat", "Fake Out", "U-turn"], sp: { hp: 32, attack: 20, defense: 0, spAtk: 0, spDef: 14, speed: 0 } },
-    { name: "Offensive", nature: "Adamant", ability: "Intimidate", item: "Choice Band", moves: ["Flare Blitz", "Darkest Lariat", "U-turn", "Close Combat"], sp: { hp: 20, attack: 32, defense: 2, spAtk: 0, spDef: 12, speed: 0 } },
+    { name: "Assault Vest", nature: "Adamant", ability: "Intimidate", item: "Assault Vest", moves: ["Flare Blitz", "Darkest Lariat", "Fake Out", "Leech Life"], sp: { hp: 32, attack: 20, defense: 0, spAtk: 0, spDef: 14, speed: 0 } },
+    { name: "Offensive", nature: "Adamant", ability: "Intimidate", item: "Choice Band", moves: ["Flare Blitz", "Darkest Lariat", "Leech Life", "Close Combat"], sp: { hp: 20, attack: 32, defense: 2, spAtk: 0, spDef: 12, speed: 0 } },
     { name: "Parting Shot Pivot", nature: "Careful", ability: "Intimidate", item: "Safety Goggles", moves: ["Fake Out", "Darkest Lariat", "Parting Shot", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
     { name: "Fast Fake Out", nature: "Jolly", ability: "Intimidate", item: "Focus Sash", moves: ["Fake Out", "Flare Blitz", "Darkest Lariat", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
   ],
@@ -568,15 +568,15 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
     { name: "Sand Rush", nature: "Jolly", ability: "Sand Rush", item: "Life Orb", moves: ["Accelerock", "Stone Edge", "Close Combat", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
     { name: "Focus Sash Lead", nature: "Jolly", ability: "Steadfast", item: "Focus Sash", moves: ["Accelerock", "Stone Edge", "Close Combat", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
     { name: "Choice Band", nature: "Jolly", ability: "Sand Rush", item: "Choice Band", moves: ["Stone Edge", "Close Combat", "Crunch", "Rock Slide"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
-    { name: "Counter Sash", nature: "Jolly", ability: "Steadfast", item: "Focus Sash", moves: ["Counter", "Accelerock", "Stone Edge", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
+    { name: "Counter Sash", nature: "Jolly", ability: "Steadfast", item: "Focus Sash", moves: ["Close Combat", "Accelerock", "Stone Edge", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
   ],
 
   // Toxapex (id: 748)
   748: [
-    { name: "Defensive Wall", nature: "Bold", ability: "Regenerator", item: "Rocky Helmet", moves: ["Scald", "Toxic", "Recover", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
-    { name: "Specially Defensive", nature: "Calm", ability: "Regenerator", item: "Black Sludge", moves: ["Scald", "Haze", "Recover", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
-    { name: "Baneful Bunker", nature: "Bold", ability: "Merciless", item: "Black Sludge", moves: ["Scald", "Toxic", "Baneful Bunker", "Recover"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
-    { name: "Offensive", nature: "Bold", ability: "Regenerator", item: "Assault Vest", moves: ["Scald", "Sludge Bomb", "Ice Beam", "Infestation"], sp: { hp: 32, attack: 0, defense: 20, spAtk: 14, spDef: 0, speed: 0 } },
+    { name: "Defensive Wall", nature: "Bold", ability: "Regenerator", item: "Rocky Helmet", moves: ["Surf", "Toxic", "Recover", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
+    { name: "Specially Defensive", nature: "Calm", ability: "Regenerator", item: "Black Sludge", moves: ["Surf", "Haze", "Recover", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
+    { name: "Baneful Bunker", nature: "Bold", ability: "Merciless", item: "Black Sludge", moves: ["Surf", "Toxic", "Baneful Bunker", "Recover"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
+    { name: "Offensive", nature: "Bold", ability: "Regenerator", item: "Assault Vest", moves: ["Surf", "Sludge Bomb", "Ice Beam", "Infestation"], sp: { hp: 32, attack: 0, defense: 20, spAtk: 14, spDef: 0, speed: 0 } },
   ],
 
   // Tsareena (id: 763)
@@ -590,7 +590,7 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
   // Oranguru (id: 765)
   765: [
     { name: "Trick Room Setter", nature: "Relaxed", ability: "Inner Focus", item: "Mental Herb", moves: ["Trick Room", "Psychic", "Instruct", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 2, spDef: 0, speed: 0 } },
-    { name: "Instruct Support", nature: "Sassy", ability: "Inner Focus", item: "Sitrus Berry", moves: ["Instruct", "Psychic", "Ally Switch", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
+    { name: "Instruct Support", nature: "Sassy", ability: "Inner Focus", item: "Sitrus Berry", moves: ["Instruct", "Psychic", "Calm Mind", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
     { name: "Offensive TR", nature: "Quiet", ability: "Inner Focus", item: "Life Orb", moves: ["Trick Room", "Psychic", "Focus Blast", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 0 } },
     { name: "Telepathy", nature: "Relaxed", ability: "Telepathy", item: "Safety Goggles", moves: ["Trick Room", "Psychic", "Instruct", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
   ],
@@ -704,8 +704,8 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
   952: [
     { name: "Sun Attacker", nature: "Timid", ability: "Chlorophyll", item: "Life Orb", moves: ["Flamethrower", "Energy Ball", "Stomping Tantrum", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
     { name: "Choice Specs", nature: "Modest", ability: "Chlorophyll", item: "Choice Specs", moves: ["Overheat", "Energy Ball", "Fire Blast", "Solar Beam"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
-    { name: "Physical Attacker", nature: "Jolly", ability: "Chlorophyll", item: "Life Orb", moves: ["Flare Blitz", "Power Whip", "Crunch", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
-    { name: "Focus Sash", nature: "Timid", ability: "Moody", item: "Focus Sash", moves: ["Flamethrower", "Energy Ball", "Destiny Bond", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
+    { name: "Physical Attacker", nature: "Jolly", ability: "Chlorophyll", item: "Life Orb", moves: ["Flare Blitz", "Seed Bomb", "Crunch", "Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
+    { name: "Focus Sash", nature: "Timid", ability: "Moody", item: "Focus Sash", moves: ["Flamethrower", "Energy Ball", "Endure", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
     { name: "Mega Spicy", nature: "Bold", ability: "Spicy Spray", item: "Scovillainite", moves: ["Flamethrower", "Energy Ball", "Leech Seed", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 2, spDef: 0, speed: 0 } },
   ],
 
@@ -713,7 +713,7 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
   959: [
     { name: "Fake Out Lead", nature: "Jolly", ability: "Mold Breaker", item: "Sitrus Berry", moves: ["Gigaton Hammer", "Play Rough", "Fake Out", "Protect"], sp: { hp: 20, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 12 } },
     { name: "Encore Support", nature: "Jolly", ability: "Own Tempo", item: "Sitrus Berry", moves: ["Gigaton Hammer", "Encore", "Fake Out", "Protect"], sp: { hp: 20, attack: 14, defense: 0, spAtk: 0, spDef: 0, speed: 32 } },
-    { name: "Choice Band", nature: "Adamant", ability: "Mold Breaker", item: "Choice Band", moves: ["Gigaton Hammer", "Play Rough", "Knock Off", "U-turn"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
+    { name: "Choice Band", nature: "Adamant", ability: "Mold Breaker", item: "Choice Band", moves: ["Gigaton Hammer", "Play Rough", "Knock Off", "Skitter Smack"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
     { name: "Stealth Rock", nature: "Jolly", ability: "Mold Breaker", item: "Focus Sash", moves: ["Stealth Rock", "Gigaton Hammer", "Encore", "Protect"], sp: { hp: 4, attack: 30, defense: 0, spAtk: 0, spDef: 0, speed: 32 } },
   ],
 
@@ -756,15 +756,15 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
   1013: [
     { name: "Trick Room Tank", nature: "Quiet", ability: "Hospitality", item: "Sitrus Berry", moves: ["Matcha Gotcha", "Shadow Ball", "Trick Room", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 0 } },
     { name: "Calm Mind", nature: "Bold", ability: "Hospitality", item: "Leftovers", moves: ["Calm Mind", "Matcha Gotcha", "Shadow Ball", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
-    { name: "Choice Specs", nature: "Modest", ability: "Hospitality", item: "Choice Specs", moves: ["Matcha Gotcha", "Shadow Ball", "Energy Ball", "Psyshock"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
-    { name: "Support", nature: "Calm", ability: "Hospitality", item: "Sitrus Berry", moves: ["Matcha Gotcha", "Helping Hand", "Trick Room", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
+    { name: "Choice Specs", nature: "Modest", ability: "Hospitality", item: "Choice Specs", moves: ["Matcha Gotcha", "Shadow Ball", "Energy Ball", "Calm Mind"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
+    { name: "Support", nature: "Calm", ability: "Hospitality", item: "Sitrus Berry", moves: ["Matcha Gotcha", "Endure", "Trick Room", "Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
   ],
 
   // Archaludon (id: 1018)
   1018: [
-    { name: "Body Press", nature: "Bold", ability: "Stamina", item: "Leftovers", moves: ["Body Press", "Flash Cannon", "Electro Shot", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
+    { name: "Stamina Tank", nature: "Bold", ability: "Stamina", item: "Leftovers", moves: ["Brick Break", "Flash Cannon", "Electro Shot", "Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
     { name: "Offensive", nature: "Modest", ability: "Stalwart", item: "Life Orb", moves: ["Flash Cannon", "Electro Shot", "Dragon Pulse", "Protect"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
-    { name: "Assault Vest", nature: "Modest", ability: "Stamina", item: "Assault Vest", moves: ["Flash Cannon", "Electro Shot", "Dragon Pulse", "Body Press"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 0 } },
+    { name: "Assault Vest", nature: "Modest", ability: "Stamina", item: "Assault Vest", moves: ["Flash Cannon", "Electro Shot", "Dragon Pulse", "Brick Break"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 0 } },
     { name: "Rain Sweeper", nature: "Modest", ability: "Stalwart", item: "Life Orb", moves: ["Electro Shot", "Flash Cannon", "Dragon Pulse", "Protect"], sp: { hp: 0, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 32 } },
   ],
 
@@ -848,7 +848,7 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
 
   // Lopunny (id: 428)
   428: [
-    { name: "Mega Fake Out", nature: "Jolly", ability: "Scrappy", item: "Lopunnite", moves: ["Fake Out","High Jump Kick","Return","Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
+    { name: "Mega Fake Out", nature: "Jolly", ability: "Scrappy", item: "Lopunnite", moves: ["Fake Out","High Jump Kick","Facade","Protect"], sp: { hp: 0, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
     { name: "Encore Support", nature: "Jolly", ability: "Scrappy", item: "Lopunnite", moves: ["Fake Out","High Jump Kick","Encore","Protect"], sp: { hp: 4, attack: 32, defense: 0, spAtk: 0, spDef: 0, speed: 30 } },
   ],
 
@@ -881,8 +881,8 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
 
   // Furfrou (id: 676)
   676: [
-    { name: "Fur Coat Physical", nature: "Jolly", ability: "Fur Coat", item: "Leftovers", moves: ["Return","Sucker Punch","Thunder Wave","Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
-    { name: "Support", nature: "Jolly", ability: "Fur Coat", item: "Sitrus Berry", moves: ["Return","U-turn","Charm","Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
+    { name: "Fur Coat Physical", nature: "Jolly", ability: "Fur Coat", item: "Leftovers", moves: ["Double-Edge","Sucker Punch","Thunder Wave","Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 0, speed: 32 } },
+    { name: "Support", nature: "Jolly", ability: "Fur Coat", item: "Sitrus Berry", moves: ["Double-Edge","Charm","Thunder Wave","Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
   ],
 
   // Clawitzer (id: 693)
@@ -999,7 +999,7 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
   134: [
     { name: "Bulky Support", nature: "Bold", ability: "Water Absorb", item: "Leftovers", moves: ["Scald","Ice Beam","Helping Hand","Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
     { name: "Trick Room Tank", nature: "Quiet", ability: "Water Absorb", item: "Sitrus Berry", moves: ["Muddy Water","Ice Beam","Hyper Voice","Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 0 } },
-    { name: "Wish Support", nature: "Calm", ability: "Water Absorb", item: "Leftovers", moves: ["Scald","Ice Beam","Wish","Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
+    { name: "Wish Support", nature: "Calm", ability: "Water Absorb", item: "Leftovers", moves: ["Scald","Ice Beam","Baton Pass","Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
   ],
 
   // Jolteon (id: 135)
@@ -1132,7 +1132,7 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
   730: [
     { name: "Specs Attacker", nature: "Modest", ability: "Liquid Voice", item: "Choice Specs", moves: ["Hyper Voice","Moonblast","Ice Beam","Energy Ball"], sp: { hp: 4, attack: 0, defense: 0, spAtk: 32, spDef: 0, speed: 30 } },
     { name: "Trick Room Sweeper", nature: "Quiet", ability: "Liquid Voice", item: "Life Orb", moves: ["Hyper Voice","Moonblast","Ice Beam","Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 32, spDef: 0, speed: 0 } },
-    { name: "Bulky Support", nature: "Calm", ability: "Torrent", item: "Sitrus Berry", moves: ["Scald","Moonblast","Icy Wind","Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
+    { name: "Bulky Support", nature: "Calm", ability: "Torrent", item: "Sitrus Berry", moves: ["Surf","Moonblast","Icy Wind","Protect"], sp: { hp: 32, attack: 0, defense: 2, spAtk: 0, spDef: 32, speed: 0 } },
   ],
 
   // Toucannon (id: 733)
@@ -1243,9 +1243,9 @@ export const USAGE_DATA: Record<number, CommonSet[]> = {
 
   // Galarian Stunfisk (id: 6618)
   6618: [
-    { name: "Trick Room Tank", nature: "Brave", ability: "Mimicry", item: "Leftovers", moves: ["Iron Head","Earthquake","Rock Slide","Protect"], sp: { hp: 32, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 0 } },
-    { name: "Bulky Trapper", nature: "Impish", ability: "Mimicry", item: "Sitrus Berry", moves: ["Iron Head","Earthquake","Snap Trap","Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
-    { name: "Assault Vest", nature: "Adamant", ability: "Mimicry", item: "Assault Vest", moves: ["Iron Head","Earthquake","Rock Slide","Stomping Tantrum"], sp: { hp: 32, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 0 } },
+    { name: "Trick Room Tank", nature: "Brave", ability: "Mimicry", item: "Leftovers", moves: ["Steel Beam","Earthquake","Rock Slide","Protect"], sp: { hp: 32, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 0 } },
+    { name: "Bulky Trapper", nature: "Impish", ability: "Mimicry", item: "Sitrus Berry", moves: ["Steel Beam","Earthquake","Snap Trap","Protect"], sp: { hp: 32, attack: 0, defense: 32, spAtk: 0, spDef: 2, speed: 0 } },
+    { name: "Assault Vest", nature: "Adamant", ability: "Mimicry", item: "Assault Vest", moves: ["Steel Beam","Earthquake","Rock Slide","Stomping Tantrum"], sp: { hp: 32, attack: 32, defense: 2, spAtk: 0, spDef: 0, speed: 0 } },
   ],
   // Mamoswine (id: 473)
   473: [

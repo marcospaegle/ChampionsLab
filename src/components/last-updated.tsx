@@ -11,6 +11,15 @@ interface ChangelogEntry {
 
 const SHARED_ENTRIES: ChangelogEntry[] = [
   {
+    date: "09/04/2026",
+    items: [
+      "Fixed Fake Out AI targeting Ghost-type Pokémon — Ghosts are now correctly immune to Normal/Fighting moves (Scrappy exception handled)",
+      "Movepools updated from Serebii Champions Pokédex — 198 Pokémon refreshed with accurate Champions move data (1158 added, 4843 non-Champions moves removed)",
+      "Fixed Mega Manectric sprite (was incorrectly showing Mega Lucario)",
+      "Merged Explosion/Self-Destruct engine support (community PR #16)",
+    ],
+  },
+  {
     date: "08/04/2026",
     items: [
       "🎮 LAUNCH DAY UPDATE — Pokémon Champions is live!",
