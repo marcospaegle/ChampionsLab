@@ -230,6 +230,12 @@ export const MOVE_DATA: Record<string, EngineMove> = {
     flags: { drain: 50 },
     secondary: { chance: 20, status: "burn" },
   },
+  "Fire Lash": {
+    name: "Fire Lash", type: "fire", category: "physical", basePower: 90,
+    accuracy: 100, pp: 16, priority: 0, target: "normal",
+    flags: { contact: true },
+    secondary: { chance: 100, boosts: { defense: -1 } },
+  },
 
   // ── WATER ──────────────────────────────────────────────────────────────────
   "Aqua Jet": {
@@ -287,6 +293,12 @@ export const MOVE_DATA: Record<string, EngineMove> = {
     name: "Wave Crash", type: "water", category: "physical", basePower: 120,
     accuracy: 100, pp: 10, priority: 0, target: "normal",
     flags: { contact: true, recoil: 33 },
+  },
+  "Crabhammer": {
+    name: "Crabhammer", type: "water", category: "physical", basePower: 100,
+    accuracy: 95, pp: 12, priority: 0, target: "normal",
+    flags: { contact: true },
+    effect: "High critical hit ratio.",
   },
   "Jet Punch": {
     name: "Jet Punch", type: "water", category: "physical", basePower: 60,
@@ -444,6 +456,19 @@ export const MOVE_DATA: Record<string, EngineMove> = {
     accuracy: 100, pp: 15, priority: 0, target: "normal",
     flags: { bullet: true },
   },
+  "Trop Kick": {
+    name: "Trop Kick", type: "grass", category: "physical", basePower: 85,
+    accuracy: 100, pp: 16, priority: 0, target: "normal",
+    flags: { contact: true },
+    secondary: { chance: 100, boosts: { attack: -1 } },
+  },
+  "Grav Apple": {
+    name: "Grav Apple", type: "grass", category: "physical", basePower: 90,
+    accuracy: 100, pp: 12, priority: 0, target: "normal",
+    flags: {},
+    secondary: { chance: 100, boosts: { defense: -1 } },
+    effect: "Power boosted by 50% under Gravity.",
+  },
 
   // ── ICE ────────────────────────────────────────────────────────────────────
   "Blizzard": {
@@ -502,6 +527,12 @@ export const MOVE_DATA: Record<string, EngineMove> = {
     accuracy: 0, pp: 20, priority: 0, target: "allySide",
     flags: {},
     effect: "Halves damage from both physical and special attacks for 5 turns. Only works in hail/snow.",
+  },
+  "Mountain Gale": {
+    name: "Mountain Gale", type: "ice", category: "physical", basePower: 120,
+    accuracy: 85, pp: 12, priority: 0, target: "normal",
+    flags: {},
+    secondary: { chance: 30, volatileStatus: "flinch" },
   },
 
   // ── FIGHTING ───────────────────────────────────────────────────────────────
@@ -663,6 +694,13 @@ export const MOVE_DATA: Record<string, EngineMove> = {
     flags: { contact: true },
     effect: "Doubles power if user's last move failed.",
   },
+  "Bone Rush": {
+    name: "Bone Rush", type: "ground", category: "physical", basePower: 30,
+    accuracy: 90, pp: 12, priority: 0, target: "normal",
+    flags: {},
+    multiHit: [2, 5],
+    effect: "Hits 2-5 times in one turn.",
+  },
 
   // ── FLYING ─────────────────────────────────────────────────────────────────
   "Acrobatics": {
@@ -740,6 +778,12 @@ export const MOVE_DATA: Record<string, EngineMove> = {
     flags: {},
     effect: "In Psychic Terrain, hits all foes and power increases to 120.",
   },
+  "Psyshield Bash": {
+    name: "Psyshield Bash", type: "psychic", category: "physical", basePower: 90,
+    accuracy: 90, pp: 12, priority: 0, target: "normal",
+    flags: { contact: true },
+    selfBoost: { defense: 1 },
+  },
 
   // ── BUG ────────────────────────────────────────────────────────────────────
   "Bug Bite": {
@@ -766,8 +810,8 @@ export const MOVE_DATA: Record<string, EngineMove> = {
     multiHit: [2, 5],
   },
   "First Impression": {
-    name: "First Impression", type: "bug", category: "physical", basePower: 90,
-    accuracy: 100, pp: 10, priority: 2, target: "normal",
+    name: "First Impression", type: "bug", category: "physical", basePower: 100,
+    accuracy: 100, pp: 12, priority: 2, target: "normal",
     flags: { contact: true, priority: true },
     effect: "Only works on the first turn after switching in.",
   },
@@ -831,7 +875,7 @@ export const MOVE_DATA: Record<string, EngineMove> = {
   "Shadow Claw": {
     name: "Shadow Claw", type: "ghost", category: "physical", basePower: 70,
     accuracy: 100, pp: 15, priority: 0, target: "normal",
-    flags: { contact: true },
+    flags: { contact: true, slicing: true },
     effect: "High critical hit ratio.",
   },
   "Shadow Sneak": {
@@ -852,8 +896,8 @@ export const MOVE_DATA: Record<string, EngineMove> = {
     effect: "If user faints next turn, attacker also faints.",
   },
   "Spirit Shackle": {
-    name: "Spirit Shackle", type: "ghost", category: "physical", basePower: 80,
-    accuracy: 100, pp: 10, priority: 0, target: "normal",
+    name: "Spirit Shackle", type: "ghost", category: "physical", basePower: 90,
+    accuracy: 100, pp: 12, priority: 0, target: "normal",
     flags: {},
     effect: "Prevents target from switching out.",
   },
@@ -868,7 +912,7 @@ export const MOVE_DATA: Record<string, EngineMove> = {
   "Dragon Claw": {
     name: "Dragon Claw", type: "dragon", category: "physical", basePower: 80,
     accuracy: 100, pp: 15, priority: 0, target: "normal",
-    flags: { contact: true },
+    flags: { contact: true, slicing: true },
   },
   "Dragon Dance": {
     name: "Dragon Dance", type: "dragon", category: "status", basePower: 0,
@@ -896,9 +940,10 @@ export const MOVE_DATA: Record<string, EngineMove> = {
   },
   "Dire Claw": {
     name: "Dire Claw", type: "poison", category: "physical", basePower: 80,
-    accuracy: 100, pp: 15, priority: 0, target: "normal",
+    accuracy: 100, pp: 16, priority: 0, target: "normal",
     flags: { contact: true },
-    effect: "50% chance to poison, paralyze, or sleep target.",
+    effect: "30% chance to poison, paralyze, or sleep target.",
+    secondary: { chance: 30 },
   },
 
   // ── DARK ───────────────────────────────────────────────────────────────────
@@ -962,6 +1007,12 @@ export const MOVE_DATA: Record<string, EngineMove> = {
     flags: { contact: true, slicing: true },
     effect: "Never misses.",
   },
+  "Night Daze": {
+    name: "Night Daze", type: "dark", category: "special", basePower: 90,
+    accuracy: 95, pp: 12, priority: 0, target: "normal",
+    flags: {},
+    secondary: { chance: 40, boosts: { accuracy: -1 } },
+  },
 
   // ── STEEL ──────────────────────────────────────────────────────────────────
   "Flash Cannon": {
@@ -972,9 +1023,9 @@ export const MOVE_DATA: Record<string, EngineMove> = {
   },
   "Iron Head": {
     name: "Iron Head", type: "steel", category: "physical", basePower: 80,
-    accuracy: 100, pp: 15, priority: 0, target: "normal",
+    accuracy: 100, pp: 16, priority: 0, target: "normal",
     flags: { contact: true },
-    secondary: { chance: 30, volatileStatus: "flinch" },
+    secondary: { chance: 20, volatileStatus: "flinch" },
   },
   "Iron Tail": {
     name: "Iron Tail", type: "steel", category: "physical", basePower: 100,
@@ -1009,9 +1060,9 @@ export const MOVE_DATA: Record<string, EngineMove> = {
   },
   "Moonblast": {
     name: "Moonblast", type: "fairy", category: "special", basePower: 95,
-    accuracy: 100, pp: 15, priority: 0, target: "normal",
+    accuracy: 100, pp: 16, priority: 0, target: "normal",
     flags: {},
-    secondary: { chance: 30, boosts: { spAtk: -1 } },
+    secondary: { chance: 10, boosts: { spAtk: -1 } },
   },
   "Play Rough": {
     name: "Play Rough", type: "fairy", category: "physical", basePower: 90,
@@ -1278,6 +1329,13 @@ export const MOVE_DATA: Record<string, EngineMove> = {
     flags: {},
     effect: "Boost depends on Tatsugiri form in mouth (Atk/Def/Spe +1).",
   },
+  "Growth": {
+    name: "Growth", type: "normal", category: "status", basePower: 0,
+    accuracy: 0, pp: 20, priority: 0, target: "self",
+    flags: {},
+    selfBoost: { attack: 1, spAtk: 1 },
+    effect: "Raises Attack and Sp. Atk by 1. In sun, raises by 2 instead.",
+  },
 
   // ── WEATHER SETTERS ────────────────────────────────────────────────────────
   "Rain Dance": {
@@ -1543,8 +1601,8 @@ export const MOVE_DATA: Record<string, EngineMove> = {
     multiHit: [2, 5],
   },
   "Beak Blast": {
-    name: "Beak Blast", type: "flying", category: "physical", basePower: 100,
-    accuracy: 100, pp: 15, priority: -3, target: "normal",
+    name: "Beak Blast", type: "flying", category: "physical", basePower: 120,
+    accuracy: 100, pp: 8, priority: -3, target: "normal",
     flags: { bullet: true },
     effect: "Burns attacker on contact while charging.",
   },
@@ -1567,8 +1625,8 @@ export const MOVE_DATA: Record<string, EngineMove> = {
   },
   // ── Competitive set moves (added 01/04/2026) ──────────────────────────
   "Apple Acid": {
-    name: "Apple Acid", type: "grass", category: "special", basePower: 80,
-    accuracy: 100, pp: 10, priority: 0, target: "normal",
+    name: "Apple Acid", type: "grass", category: "special", basePower: 90,
+    accuracy: 100, pp: 12, priority: 0, target: "normal",
     flags: {},
     effect: "Lowers the target's Sp. Def by one stage.",
     secondary: { chance: 100, boosts: { spDef: -1 } },
@@ -1638,8 +1696,8 @@ export const MOVE_DATA: Record<string, EngineMove> = {
     secondary: { chance: 30, volatileStatus: "flinch" },
   },
   "Infernal Parade": {
-    name: "Infernal Parade", type: "ghost", category: "special", basePower: 60,
-    accuracy: 100, pp: 15, priority: 0, target: "normal",
+    name: "Infernal Parade", type: "ghost", category: "special", basePower: 65,
+    accuracy: 100, pp: 16, priority: 0, target: "normal",
     flags: {},
     effect: "Doubles power if target has a status condition. 30% burn chance.",
     secondary: { chance: 30, status: "burn" },
@@ -1670,7 +1728,7 @@ export const MOVE_DATA: Record<string, EngineMove> = {
   },
   "Snap Trap": {
     name: "Snap Trap", type: "grass", category: "physical", basePower: 35,
-    accuracy: 100, pp: 15, priority: 0, target: "normal",
+    accuracy: 100, pp: 16, priority: 0, target: "normal",
     flags: { contact: true },
     effect: "Traps target for 4-5 turns, dealing 1/8 HP per turn.",
   },
