@@ -12,6 +12,7 @@ import { PokemonDetailModal } from "@/components/pokemon-detail-modal";
 import { SeasonInfo } from "@/components/season-tabs";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+import { useI18n } from "@/lib/i18n";
 
 const ALL_TYPES: PokemonType[] = [
   "normal", "fire", "water", "electric", "grass", "ice",
@@ -54,6 +55,7 @@ export default function HomePage() {
   const [sortBy, setSortBy] = useState<SortOption>("dex");
   const [statFilters, setStatFilters] = useState<StatFilters>({ ...EMPTY_STAT_FILTERS });
   const [selectedPokemon, setSelectedPokemon] = useState<ChampionsPokemon | null>(null);
+  const { t, ts, tp, tm, ta } = useI18n();
 
   // Pokémon Champions release countdown  -  April 8, 2026 12:00 JST (03:00 UTC)
   const RELEASE_DATE = new Date("2026-04-08T03:00:00Z");
@@ -87,20 +89,21 @@ export default function HomePage() {
       results = results.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
+          tp(p.name).toLowerCase().includes(q) ||
           p.dexNumber.toString().includes(q) ||
-          p.types.some((t) => t.includes(q)) ||
-          p.abilities.some((a) => a.name.toLowerCase().includes(q)) ||
-          p.moves.some((m) => m.name.toLowerCase().includes(q)) ||
+          p.types.some((ty) => ty.includes(q) || t(`common.types.${ty}`).toLowerCase().includes(q)) ||
+          p.abilities.some((a) => a.name.toLowerCase().includes(q) || ta(a.name).toLowerCase().includes(q)) ||
+          p.moves.some((m) => m.name.toLowerCase().includes(q) || tm(m.name).toLowerCase().includes(q)) ||
           (p.forms?.some((f) =>
             f.name.toLowerCase().includes(q) ||
-            f.abilities.some((a) => a.name.toLowerCase().includes(q))
+            f.abilities.some((a) => a.name.toLowerCase().includes(q) || ta(a.name).toLowerCase().includes(q))
           ) ?? false)
       );
     }
 
     if (selectedTypes.length > 0) {
       results = results.filter((p) =>
-        selectedTypes.some((t) => p.types.includes(t))
+        selectedTypes.some((ty) => p.types.includes(ty))
       );
     }
 
@@ -142,7 +145,7 @@ export default function HomePage() {
     });
 
     return results;
-  }, [activeSeason, searchQuery, selectedTypes, selectedGens, showMegaOnly, sortBy, statFilters]);
+  }, [activeSeason, searchQuery, selectedTypes, selectedGens, showMegaOnly, sortBy, statFilters, tp, tm, ta, t]);
 
   const toggleType = (type: PokemonType) => {
     trackEvent("filter_type", "pokedex", type);
@@ -189,7 +192,7 @@ export default function HomePage() {
           transition={{ delay: 0.1 }}
         >
           <span className="bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500 bg-clip-text text-transparent">
-            Pokédex
+            {t("pokedex.title")}
           </span>
         </motion.h1>
         <div className="flex justify-center mt-2">
@@ -201,7 +204,7 @@ export default function HomePage() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          Explore the full roster, base stats, abilities, and competitive sets for all {getPokemonBySeason(1).length} eligible Pokémon.
+          {t("pokedex.description", { count: getPokemonBySeason(1).length })}
         </motion.p>
 
         {/* Engine Promotion Banner */}
@@ -216,8 +219,8 @@ export default function HomePage() {
             <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           </span>
           <div className="text-left">
-            <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">Advanced VGC Battle Engine</p>
-            <p className="text-[10px] text-muted-foreground">2,000,000+ battles simulated · Full AI · Live Replay · Try it now →</p>
+            <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">{t("pokedex.promo.battleEngine")}</p>
+            <p className="text-[10px] text-muted-foreground">{t("pokedex.promo.battleEngineDesc")}</p>
           </div>
         </motion.a>
 
@@ -236,16 +239,16 @@ export default function HomePage() {
                 <div className="flex items-center justify-center gap-2">
                   <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
                   <p className="text-lg sm:text-xl font-extrabold uppercase tracking-wider bg-gradient-to-r from-emerald-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent font-heading">
-                    Pokémon Champions Release
+                    {t("pokedex.countdown.title")}
                   </p>
                   <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
                 </div>
                 <div className="flex justify-center gap-3 py-1">
                   {[
-                    { val: countdown.d, label: "Days" },
-                    { val: countdown.h, label: "Hours" },
-                    { val: countdown.m, label: "Min" },
-                    { val: countdown.s, label: "Sec" },
+                    { val: countdown.d, label: t("pokedex.countdown.days") },
+                    { val: countdown.h, label: t("pokedex.countdown.hours") },
+                    { val: countdown.m, label: t("pokedex.countdown.min") },
+                    { val: countdown.s, label: t("pokedex.countdown.sec") },
                   ].map((unit) => (
                     <div key={unit.label} className="flex flex-col items-center min-w-[3.5rem] py-2 px-1 rounded-xl bg-white/50 dark:bg-white/5 border border-gray-200/50 dark:border-white/10">
                       <span className="text-2xl sm:text-3xl font-black tabular-nums bg-gradient-to-b from-emerald-400 to-cyan-500 bg-clip-text text-transparent leading-none">
@@ -256,20 +259,20 @@ export default function HomePage() {
                   ))}
                 </div>
                 <p className="text-[10px] text-muted-foreground text-center italic">
-                  Expected April 8, 2026 · Noon Japan Time (JST)
+                  {t("pokedex.countdown.expected")}
                 </p>
                 <p className="text-[11px] text-center text-muted-foreground">
-                  Hype is real! Come wait with us 👇
+                  {t("pokedex.countdown.hype")}
                 </p>
                 <div className="flex justify-center">
                   <a
-                    href="https://discord.gg/kpwE7u3M"
+                    href="https://discord.gg/WShMRRSrtm"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-[#5865F2]/15 hover:bg-[#5865F2]/25 border border-[#5865F2]/30 hover:border-[#5865F2]/50 transition-all text-xs font-bold text-[#5865F2] hover:scale-105"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
-                    Wait with us on Discord!
+                    {t("pokedex.countdown.discordWait")}
                   </a>
                 </div>
               </div>
@@ -280,20 +283,20 @@ export default function HomePage() {
               <div className="relative space-y-3 text-center">
                 <p className="text-3xl">🎉🎮🏆</p>
                 <p className="text-lg font-extrabold bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
-                  Pokémon Champions is HERE!
+                  {t("pokedex.countdown.released")}
                 </p>
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                  The wait is over! Go have a blast on Nintendo Switch  -  and when you&apos;re ready to dominate the competitive scene, we&apos;ve got your back. Let&apos;s become Champions together!
+                  {t("pokedex.countdown.releasedDesc")}
                 </p>
                 <div className="flex justify-center">
                   <a
-                    href="https://discord.gg/kpwE7u3M"
+                    href="https://discord.gg/WShMRRSrtm"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-[#5865F2]/15 hover:bg-[#5865F2]/25 border border-[#5865F2]/30 hover:border-[#5865F2]/50 transition-all text-xs font-bold text-[#5865F2] hover:scale-105"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
-                    Join our Discord community!
+                    {t("pokedex.countdown.discordJoin")}
                   </a>
                 </div>
               </div>
@@ -325,7 +328,7 @@ export default function HomePage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search by name, type, dex #, move, or ability..."
+              placeholder={t("pokedex.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-11 pr-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100 text-sm placeholder:text-gray-400 transition-all shadow-sm"
@@ -343,7 +346,7 @@ export default function HomePage() {
             )}
           >
             <SlidersHorizontal className="w-4 h-4" />
-            <span className="hidden sm:inline text-sm">Filters</span>
+            <span className="hidden sm:inline text-sm">{t("common.filters")}</span>
           </button>
 
           {/* Sort */}
@@ -352,16 +355,16 @@ export default function HomePage() {
             onChange={(e) => setSortBy(e.target.value as SortOption)}
             className="px-4 py-3 rounded-xl glass border border-gray-200 text-sm bg-transparent cursor-pointer focus:outline-none focus:border-violet-500/50"
           >
-            <option value="tier">Tier</option>
-            <option value="name">Name</option>
-            <option value="dex">Dex #</option>
-            <option value="hp">HP</option>
-            <option value="attack">Attack</option>
-            <option value="defense">Defense</option>
-            <option value="spAtk">Sp.Atk</option>
-            <option value="spDef">Sp.Def</option>
-            <option value="speed">Speed</option>
-            <option value="bst">BST</option>
+            <option value="tier">{t("pokedex.sort.tier")}</option>
+            <option value="name">{t("pokedex.sort.name")}</option>
+            <option value="dex">{t("pokedex.sort.dex")}</option>
+            <option value="hp">{t("pokedex.sort.hp")}</option>
+            <option value="attack">{t("pokedex.sort.attack")}</option>
+            <option value="defense">{t("pokedex.sort.defense")}</option>
+            <option value="spAtk">{t("pokedex.sort.spAtk")}</option>
+            <option value="spDef">{t("pokedex.sort.spDef")}</option>
+            <option value="speed">{t("pokedex.sort.speed")}</option>
+            <option value="bst">{t("pokedex.sort.bst")}</option>
           </select>
         </div>
 
@@ -374,7 +377,7 @@ export default function HomePage() {
           <div className="glass rounded-2xl p-5 border border-gray-200/60 space-y-4">
             {/* Type filters */}
             <div>
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Type</h4>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">{t("pokedex.filters.type")}</h4>
               <div className="flex flex-wrap gap-1.5">
                 {ALL_TYPES.map((type) => (
                   <button
@@ -396,7 +399,7 @@ export default function HomePage() {
                       border: `1.5px solid ${selectedTypes.includes(type) ? TYPE_COLORS_MAP[type] : `${TYPE_COLORS_MAP[type]}55`}`,
                     }}
                   >
-                    {type}
+                    {t(`common.types.${type}`)}
                   </button>
                 ))}
               </div>
@@ -404,7 +407,7 @@ export default function HomePage() {
 
             {/* Generation filters */}
             <div>
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Generation</h4>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">{t("pokedex.filters.generation")}</h4>
               <div className="flex flex-wrap gap-1.5">
                 {ALL_GENS.map((gen) => (
                   <button
@@ -435,7 +438,7 @@ export default function HomePage() {
                 )}
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                Mega Only
+                {t("pokedex.filters.megaOnly")}
               </button>
             </div>
 
@@ -444,7 +447,7 @@ export default function HomePage() {
               <div className="flex items-center justify-between mb-2.5">
                 <div className="flex items-center gap-2">
                   <SlidersHorizontal className="w-3.5 h-3.5 text-violet-500" />
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Base Stats</h4>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("pokedex.filters.baseStats")}</h4>
                   {Object.values(statFilters).some(v => v > 0) && (
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400">
                       {Object.values(statFilters).filter(v => v > 0).length} active
@@ -460,13 +463,13 @@ export default function HomePage() {
                       : "text-transparent pointer-events-none"
                   )}
                 >
-                  Clear all
+                  {t("common.clearAll")}
                 </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
                 {STAT_KEYS.map(({ key, label, color }) => (
                   <div key={key} className="flex items-center gap-2.5">
-                    <span className="text-[11px] font-bold w-8 text-right" style={{ color }}>{label}</span>
+                    <span className="text-[11px] font-bold w-8 text-right" style={{ color }}>{ts(key)}</span>
                     <input
                       type="range"
                       min={0}
@@ -514,7 +517,7 @@ export default function HomePage() {
       {/* Results count */}
       <div className="flex items-center justify-between mb-5">
         <p className="text-sm text-gray-400">
-          Showing <span className="text-gray-700 font-semibold">{filteredPokemon.length}</span> Pokémon
+          {t("common.showing", { count: filteredPokemon.length })}
         </p>
       </div>
 
@@ -540,8 +543,8 @@ export default function HomePage() {
           animate={{ opacity: 1 }}
           className="text-center py-20"
         >
-          <p className="text-muted-foreground text-lg mb-2">No Pokémon found</p>
-          <p className="text-sm text-muted-foreground/60">Try adjusting your filters or search query</p>
+          <p className="text-muted-foreground text-lg mb-2">{t("pokedex.noMatch")}</p>
+          <p className="text-sm text-muted-foreground/60">{t("pokedex.adjustFilters")}</p>
         </motion.div>
       )}
 
