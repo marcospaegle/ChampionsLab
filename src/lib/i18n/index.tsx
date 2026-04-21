@@ -1,0 +1,244 @@
+"use client";
+
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from "react";
+
+import en from "./en.json";
+import fr from "./fr.json";
+import pokemonNamesFr from "./pokemon-names.fr.json";
+import movesFr from "./moves.fr.json";
+import moveDescsFr from "./move-descriptions.fr.json";
+import moveDescsEn from "./move-descriptions.en.json";
+import abilitiesFr from "./abilities.fr.json";
+import abilityDescsFr from "./ability-descriptions.fr.json";
+import abilityDescsEn from "./ability-descriptions.en.json";
+import itemsFr from "./items.fr.json";
+import itemDescsFr from "./item-descriptions.fr.json";
+import itemDescsEn from "./item-descriptions.en.json";
+import naturesFr from "./natures.fr.json";
+
+/* ── Supported locales ── */
+export type Locale = "en" | "fr" | "es" | "es-419" | "pt-PT" | "pt-BR" | "it" | "th";
+
+/* ── UI translation dictionaries ── */
+type Dict = typeof en;
+const UI_TRANSLATIONS: Record<string, Dict> = { en, fr };
+
+/* ── Pokémon name dictionaries (en → localised) ── */
+const POKEMON_NAMES: Record<string, Record<string, string>> = {
+  fr: pokemonNamesFr as Record<string, string>,
+};
+
+/* ── Game data dictionaries (en → localised) ── */
+const MOVE_NAMES: Record<string, Record<string, string>> = {
+  fr: movesFr as Record<string, string>,
+};
+const ABILITY_NAMES: Record<string, Record<string, string>> = {
+  fr: abilitiesFr as Record<string, string>,
+};
+const ITEM_NAMES: Record<string, Record<string, string>> = {
+  fr: itemsFr as Record<string, string>,
+};
+const NATURE_NAMES: Record<string, Record<string, string>> = {
+  fr: naturesFr as Record<string, string>,
+};
+
+const MOVE_DESCRIPTIONS: Record<string, Record<string, string>> = {
+  en: moveDescsEn as Record<string, string>,
+  fr: moveDescsFr as Record<string, string>,
+};
+
+const ABILITY_DESCRIPTIONS: Record<string, Record<string, string>> = {
+  en: abilityDescsEn as Record<string, string>,
+  fr: abilityDescsFr as Record<string, string>,
+};
+
+const ITEM_DESCRIPTIONS: Record<string, Record<string, string>> = {
+  en: itemDescsEn as Record<string, string>,
+  fr: itemDescsFr as Record<string, string>,
+};
+
+/* ── Helpers ── */
+function getNestedValue(obj: unknown, path: string): string | undefined {
+  const parts = path.split(".");
+  let cur: unknown = obj;
+  for (const p of parts) {
+    if (cur == null || typeof cur !== "object") return undefined;
+    cur = (cur as Record<string, unknown>)[p];
+  }
+  return typeof cur === "string" ? cur : undefined;
+}
+
+/* ── Context ── */
+interface I18nContextValue {
+  locale: Locale;
+  setLocale: (l: Locale) => void;
+  /** Look up a dotted key like "nav.pokedex". Falls back to English, then the key itself. */
+  t: (key: string, vars?: Record<string, string | number>) => string;
+  /** Translate a Pokémon name. Returns the localised name or the English name if unavailable. */
+  tp: (englishName: string) => string;
+  /** Translate a move name. */
+  tm: (englishName: string) => string;
+  /** Translate an ability name. */
+  ta: (englishName: string) => string;
+  /** Translate an item name. */
+  ti: (englishName: string) => string;
+  /** Translate a nature name. */
+  tn: (englishName: string) => string;
+  /** Translate a stat key (hp, attack, etc.) to its short localised label. */
+  ts: (statKey: string) => string;
+  /** Translate a type name to its short localised abbreviation (e.g. "fire" → "FEU" in French). */
+  tt: (typeName: string) => string;
+  /** Translate a type name to its full localised name (e.g. "fire" → "Feu" in French). */
+  tty: (typeName: string) => string;
+  /** Translate a move description. Falls back to the English description from PokeAPI, then the raw description. */
+  tmd: (englishMoveName: string, fallbackDesc: string) => string;
+  /** Translate an ability description. */
+  tad: (englishAbilityName: string, fallbackDesc: string) => string;
+  /** Translate an item description. */
+  tid: (englishItemName: string, fallbackDesc: string) => string;
+}
+
+const I18nContext = createContext<I18nContextValue | null>(null);
+
+/* ── Provider ── */
+export function I18nProvider({ children, initialLocale = "en" }: { children: ReactNode; initialLocale?: string }) {
+  const [locale, setLocaleState] = useState<Locale>(initialLocale as Locale);
+
+  // Sync localStorage → state on mount (handles stale-cookie edge case)
+  useEffect(() => {
+    const stored = localStorage.getItem("championslab-lang") as Locale | null;
+    if (stored && stored !== locale) {
+      setLocaleState(stored);
+      document.cookie = `cl-lang=${stored};path=/;max-age=31536000;SameSite=Lax`;
+      document.documentElement.lang = stored.split("-")[0];
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setLocale = useCallback((l: Locale) => {
+    setLocaleState(l);
+    localStorage.setItem("championslab-lang", l);
+    document.cookie = `cl-lang=${l};path=/;max-age=31536000;SameSite=Lax`;
+    document.documentElement.lang = l.split("-")[0];
+  }, []);
+
+  const t = useCallback(
+    (key: string, vars?: Record<string, string | number>): string => {
+      const dict = UI_TRANSLATIONS[locale] ?? UI_TRANSLATIONS.en;
+      let value = getNestedValue(dict, key) ?? getNestedValue(en, key) ?? key;
+      if (vars) {
+        for (const [k, v] of Object.entries(vars)) {
+          value = value.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+        }
+      }
+      return value;
+    },
+    [locale]
+  );
+
+  const tp = useCallback(
+    (englishName: string): string => {
+      if (locale === "en") return englishName;
+      return POKEMON_NAMES[locale]?.[englishName] ?? englishName;
+    },
+    [locale]
+  );
+
+  const tm = useCallback(
+    (englishName: string): string => {
+      if (locale === "en") return englishName;
+      return MOVE_NAMES[locale]?.[englishName] ?? englishName;
+    },
+    [locale]
+  );
+
+  const ta = useCallback(
+    (englishName: string): string => {
+      if (locale === "en") return englishName;
+      return ABILITY_NAMES[locale]?.[englishName] ?? englishName;
+    },
+    [locale]
+  );
+
+  const ti = useCallback(
+    (englishName: string): string => {
+      if (locale === "en") return englishName;
+      return ITEM_NAMES[locale]?.[englishName] ?? englishName;
+    },
+    [locale]
+  );
+
+  const tn = useCallback(
+    (englishName: string): string => {
+      if (locale === "en") return englishName;
+      return NATURE_NAMES[locale]?.[englishName] ?? englishName;
+    },
+    [locale]
+  );
+
+  const ts = useCallback(
+    (statKey: string): string => {
+      const dict = UI_TRANSLATIONS[locale] ?? UI_TRANSLATIONS.en;
+      return (dict as any).common?.stats?.[statKey] ?? (en as any).common?.stats?.[statKey] ?? statKey;
+    },
+    [locale]
+  );
+
+  const tt = useCallback(
+    (typeName: string): string => {
+      const key = typeName.toLowerCase();
+      const dict = UI_TRANSLATIONS[locale] ?? UI_TRANSLATIONS.en;
+      return (dict as any).common?.typeShort?.[key] ?? (en as any).common?.typeShort?.[key] ?? typeName.slice(0, 3).toUpperCase();
+    },
+    [locale]
+  );
+
+  const tty = useCallback(
+    (typeName: string): string => {
+      const key = typeName.toLowerCase();
+      const dict = UI_TRANSLATIONS[locale] ?? UI_TRANSLATIONS.en;
+      return (dict as any).common?.typeFull?.[key] ?? (en as any).common?.typeFull?.[key] ?? typeName;
+    },
+    [locale]
+  );
+
+  const tmd = useCallback(
+    (englishMoveName: string, fallbackDesc: string): string => {
+      return MOVE_DESCRIPTIONS[locale]?.[englishMoveName] ?? MOVE_DESCRIPTIONS.en?.[englishMoveName] ?? fallbackDesc;
+    },
+    [locale]
+  );
+
+  const tad = useCallback(
+    (englishAbilityName: string, fallbackDesc: string): string => {
+      return ABILITY_DESCRIPTIONS[locale]?.[englishAbilityName] ?? ABILITY_DESCRIPTIONS.en?.[englishAbilityName] ?? fallbackDesc;
+    },
+    [locale]
+  );
+
+  const tid = useCallback(
+    (englishItemName: string, fallbackDesc: string): string => {
+      return ITEM_DESCRIPTIONS[locale]?.[englishItemName] ?? ITEM_DESCRIPTIONS.en?.[englishItemName] ?? fallbackDesc;
+    },
+    [locale]
+  );
+
+  return (
+    <I18nContext.Provider value={{ locale, setLocale, t, tp, tm, ta, ti, tn, ts, tt, tty, tmd, tad, tid }}>
+      {children}
+    </I18nContext.Provider>
+  );
+}
+
+/* ── Hook ── */
+export function useI18n() {
+  const ctx = useContext(I18nContext);
+  if (!ctx) throw new Error("useI18n must be used within <I18nProvider>");
+  return ctx;
+}

@@ -132,7 +132,6 @@
 .glass {
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
@@ -261,6 +260,45 @@ body.mobile-open .mobile-nav-panel { display: block; }
 .sp-slider::-moz-range-thumb { border-color: var(--sp-thumb-border, #8b5cf6); }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* Stat filter range inputs – dark mode track */
+.dark .stat-range::-webkit-slider-runnable-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  height: 6px;
+}
+.dark .stat-range::-moz-range-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  height: 6px;
+}
+.stat-range::-webkit-slider-runnable-track {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
+  height: 6px;
+}
+.stat-range::-moz-range-track {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
+  height: 6px;
+}
+.stat-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--stat-color, #888);
+  margin-top: -4px;
+  cursor: pointer;
+}
+.stat-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--stat-color, #888);
+  border: none;
+  cursor: pointer;
+}
+
 
 /* =====================================================
    DARK MODE - Deep Blue Theme
@@ -349,6 +387,10 @@ body.mobile-open .mobile-nav-panel { display: block; }
   --color-yellow-50:   #1c1a06;
   --color-yellow-100:  #28260a;
   --color-yellow-200:  #36340c;
+  --color-teal-50:     #081c1c;
+  --color-teal-100:    #0c2828;
+  --color-teal-200:    #103838;
+  --color-teal-500:    #2dd4bf;
 
   /* ── Colored -700 text remap (lighter for dark bg readability) ── */
   --color-emerald-700: #6ee7b7;
@@ -373,6 +415,8 @@ body.mobile-open .mobile-nav-panel { display: block; }
   --color-green-800:   #bbf7d0;
   --color-yellow-700:  #fde047;
   --color-yellow-800:  #fef08a;
+  --color-teal-700:    #5eead4;
+  --color-teal-800:    #99f6e4;
 }
 
 /* ── Body background with cosmic blue gradients ── */
@@ -391,7 +435,6 @@ body.mobile-open .mobile-nav-panel { display: block; }
 .dark .glass {
   background: rgba(14, 21, 40, 0.78);
   backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(148, 163, 184, 0.08);
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.4),
@@ -447,7 +490,6 @@ body.mobile-open .mobile-nav-panel { display: block; }
   /* Light mode style */
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.08),
     0 0 0 1px rgba(0, 0, 0, 0.04);

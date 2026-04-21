@@ -13,6 +13,7 @@ import { POKEMON_SEED } from "@/lib/pokemon-data";
 import { TYPE_COLORS, type PokemonType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+import { useI18n } from "@/lib/i18n";
 import { getMegaIdFromArchetype, getMegaSprite, getMegaName } from "@/lib/mega-utils";
 import { LastUpdated } from "@/components/last-updated";
 import { USAGE_DATA } from "@/lib/usage-data";
@@ -218,6 +219,7 @@ type ModalType =
   | { kind: "anti-meta"; id: string };
 
 export default function MetaPage() {
+  const { t, tp, tm, ta, ti, tn, ts, tt, tty, tad } = useI18n();
   const [activeTab, setActiveTabRaw] = useState<ActiveTab>("overview");
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
   const [selectedPokemon, setSelectedPokemon] = useState<string | null>(null);
@@ -225,6 +227,62 @@ export default function MetaPage() {
 
   const setActiveTab = (tab: ActiveTab) => { trackEvent("tab_switch", "meta", tab); setActiveTabRaw(tab); };
   const setModal = (m: ModalType | null) => { if (m) trackEvent("open_modal", "meta", m.kind + ("name" in m ? `_${m.name}` : "pair" in m ? `_${m.pair}` : "")); setModalRaw(m); };
+
+  // ── ML insight translation (strings built at module level, translated at render) ──
+  const translateMLInsight = (text: string): string => {
+    let m: RegExpMatchArray | null;
+    // "Top meta threats: {name} ({wr}% WR, {elo} ELO), ..."
+    m = text.match(/^Top meta threats: (.+)$/);
+    if (m) {
+      const entries = m[1].split(", ").map(e => e.replace(/^(.+?) \((\d+\.?\d*% WR, .+ ELO)\)$/, (_, name, stats) => `${tp(name)} (${stats})`));
+      return `${t('meta.mlInsight.topThreats')} ${entries.join(", ")}`;
+    }
+    // "Strongest cores: {pair} ({wr}%), ..."
+    m = text.match(/^Strongest cores: (.+)$/);
+    if (m) {
+      const entries = m[1].split("), ").map((e, i, arr) => {
+        const full = i < arr.length - 1 ? e + ")" : e;
+        return full.replace(/^(.+?) \((\d+\.?\d*%)\)$/, (_, pair, wr) => `${pair.split(" + ").map((n: string) => tp(n)).join(" + ")} (${wr})`);
+      });
+      return `${t('meta.mlInsight.strongestCores')} ${entries.join(", ")}`;
+    }
+    // "Top Mega Pokémon: {name} ({wr}% WR), ..."
+    m = text.match(/^Top Mega Pok[eé]mon: (.+)$/);
+    if (m) {
+      const entries = m[1].split("), ").map((e, i, arr) => {
+        const full = i < arr.length - 1 ? e + ")" : e;
+        return full.replace(/^(.+?) \((\d+\.?\d*% WR)\)$/, (_, name, wr) => `${tp(name)} (${wr})`);
+      });
+      return `${t('meta.mlInsight.topMega')} ${entries.join(", ")}`;
+    }
+    // "Overrated Pokémon (high usage, low WR): {name} ({wr}%), ..."
+    m = text.match(/^Overrated Pok[eé]mon \(high usage, low WR\): (.+)$/);
+    if (m) {
+      const entries = m[1].split("), ").map((e, i, arr) => {
+        const full = i < arr.length - 1 ? e + ")" : e;
+        return full.replace(/^(.+?) \((\d+\.?\d*%)\)$/, (_, name, wr) => `${tp(name)} (${wr})`);
+      });
+      return `${t('meta.mlInsight.overrated')} ${entries.join(", ")}`;
+    }
+    // "Best archetypes: {arch} ({wr}% WR), ..."
+    m = text.match(/^Best archetypes: (.+)$/);
+    if (m) {
+      const entries = m[1].split("), ").map((e, i, arr) => {
+        const full = i < arr.length - 1 ? e + ")" : e;
+        return full.replace(/^(.+?) \((\d+\.?\d*% WR)\)$/, (_, name, wr) => `${name} (${wr})`);
+      });
+      return `${t('meta.mlInsight.bestArchetypes')} ${entries.join(", ")}`;
+    }
+    return text;
+  };
+
+  // ── Anti-meta strategy translation ──
+  const translateAntiMetaStrategy = (strategy: string): string => {
+    // "Built around {name} ({score} anti-meta score). Counters {n1} and {n2}."
+    const m = strategy.match(/^Built around (.+?) \((\d+) anti-meta score\)\. Counters (.+) and (.+)\.$/);
+    if (m) return t('meta.antiMeta.strategy', { name: tp(m[1]), score: m[2], c1: tp(m[3]), c2: tp(m[4]) });
+    return strategy;
+  };
 
   const metaTeams = useMemo(() => predictMetaTeams(), []);
   const topUsage = useMemo(() => getTopUsagePokemon(40), []);
@@ -339,33 +397,33 @@ export default function MetaPage() {
   // Speed tier bracket definitions
   const SPEED_BRACKETS = trickRoomMode
     ? [
-        { label: "Trick Room Sweepers", range: "< 80 Base", min: 0, max: 79, color: "from-indigo-500 to-purple-500", bg: "bg-indigo-50", border: "border-indigo-200", text: "text-indigo-700" },
-        { label: "Trick Room Viable", range: "80–109 Base", min: 80, max: 109, color: "from-purple-500 to-fuchsia-500", bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
-        { label: "Awkward Speed", range: "110–139 Base", min: 110, max: 139, color: "from-gray-400 to-gray-500", bg: "bg-gray-50", border: "border-gray-200", text: "text-gray-600" },
-        { label: "Fast", range: "140–169 Base", min: 140, max: 169, color: "from-cyan-500 to-teal-500", bg: "bg-cyan-50", border: "border-cyan-200", text: "text-cyan-700" },
-        { label: "Very Fast", range: "170–199 Base", min: 170, max: 199, color: "from-amber-500 to-orange-500", bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
-        { label: "Blazing", range: "≥ 200 Base", min: 200, max: 999, color: "from-red-500 to-rose-500", bg: "bg-red-50", border: "border-red-200", text: "text-red-700" },
+        { label: "Trick Room Sweepers", range: "< 80 Base", min: 0, max: 79, color: "from-indigo-500 to-purple-500", bg: "bg-indigo-50 dark:bg-indigo-500/10", border: "border-indigo-200 dark:border-indigo-500/20", text: "text-indigo-700 dark:text-indigo-400" },
+        { label: "Trick Room Viable", range: "80–109 Base", min: 80, max: 109, color: "from-purple-500 to-fuchsia-500", bg: "bg-purple-50 dark:bg-purple-500/10", border: "border-purple-200 dark:border-purple-500/20", text: "text-purple-700 dark:text-purple-400" },
+        { label: "Awkward Speed", range: "110–139 Base", min: 110, max: 139, color: "from-gray-400 to-gray-500", bg: "bg-gray-50 dark:bg-white/[0.04]", border: "border-gray-200 dark:border-white/10", text: "text-gray-600 dark:text-gray-400" },
+        { label: "Fast", range: "140–169 Base", min: 140, max: 169, color: "from-cyan-500 to-teal-500", bg: "bg-cyan-50 dark:bg-cyan-500/10", border: "border-cyan-200 dark:border-cyan-500/20", text: "text-cyan-700 dark:text-cyan-400" },
+        { label: "Very Fast", range: "170–199 Base", min: 170, max: 199, color: "from-amber-500 to-orange-500", bg: "bg-amber-50 dark:bg-amber-500/10", border: "border-amber-200 dark:border-amber-500/20", text: "text-amber-700 dark:text-amber-400" },
+        { label: "Blazing", range: "≥ 200 Base", min: 200, max: 999, color: "from-red-500 to-rose-500", bg: "bg-red-50 dark:bg-red-500/10", border: "border-red-200 dark:border-red-500/20", text: "text-red-700 dark:text-red-400" },
       ]
     : [
-        { label: "Blazing", range: "≥ 200 Base", min: 200, max: 999, color: "from-red-500 to-rose-500", bg: "bg-red-50", border: "border-red-200", text: "text-red-700" },
-        { label: "Very Fast", range: "170–199 Base", min: 170, max: 199, color: "from-amber-500 to-orange-500", bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
-        { label: "Fast", range: "140–169 Base", min: 140, max: 169, color: "from-cyan-500 to-teal-500", bg: "bg-cyan-50", border: "border-cyan-200", text: "text-cyan-700" },
-        { label: "Standard", range: "110–139 Base", min: 110, max: 139, color: "from-blue-500 to-indigo-500", bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700" },
-        { label: "Slow", range: "80–109 Base", min: 80, max: 109, color: "from-purple-500 to-fuchsia-500", bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
-        { label: "Trick Room", range: "< 80 Base", min: 0, max: 79, color: "from-indigo-500 to-purple-500", bg: "bg-indigo-50", border: "border-indigo-200", text: "text-indigo-700" },
+        { label: "Blazing", range: "≥ 200 Base", min: 200, max: 999, color: "from-red-500 to-rose-500", bg: "bg-red-50 dark:bg-red-500/10", border: "border-red-200 dark:border-red-500/20", text: "text-red-700 dark:text-red-400" },
+        { label: "Very Fast", range: "170–199 Base", min: 170, max: 199, color: "from-amber-500 to-orange-500", bg: "bg-amber-50 dark:bg-amber-500/10", border: "border-amber-200 dark:border-amber-500/20", text: "text-amber-700 dark:text-amber-400" },
+        { label: "Fast", range: "140–169 Base", min: 140, max: 169, color: "from-cyan-500 to-teal-500", bg: "bg-cyan-50 dark:bg-cyan-500/10", border: "border-cyan-200 dark:border-cyan-500/20", text: "text-cyan-700 dark:text-cyan-400" },
+        { label: "Standard", range: "110–139 Base", min: 110, max: 139, color: "from-blue-500 to-indigo-500", bg: "bg-blue-50 dark:bg-blue-500/10", border: "border-blue-200 dark:border-blue-500/20", text: "text-blue-700 dark:text-blue-400" },
+        { label: "Slow", range: "80–109 Base", min: 80, max: 109, color: "from-purple-500 to-fuchsia-500", bg: "bg-purple-50 dark:bg-purple-500/10", border: "border-purple-200 dark:border-purple-500/20", text: "text-purple-700 dark:text-purple-400" },
+        { label: "Trick Room", range: "< 80 Base", min: 0, max: 79, color: "from-indigo-500 to-purple-500", bg: "bg-indigo-50 dark:bg-indigo-500/10", border: "border-indigo-200 dark:border-indigo-500/20", text: "text-indigo-700 dark:text-indigo-400" },
       ];
 
   // Max speed value for bar scaling
   const MAX_SPEED_DISPLAY = 222; // Mega Alakazam/Aerodactyl +Nature max
 
   const tabs: { id: ActiveTab; label: string; icon: React.ElementType }[] = [
-    { id: "overview", label: "Overview", icon: BarChart3 },
-    { id: "teams", label: "Teams", icon: Users },
-    { id: "pokemon", label: "Pokémon Rankings", icon: Crown },
-    { id: "speed", label: "Speed Tiers", icon: Timer },
-    { id: "cores", label: "Core Pairs", icon: Swords },
-    { id: "matchups", label: "Archetype Matchups", icon: Target },
-    { id: "moves", label: "Move Analysis", icon: Zap },
+    { id: "overview", label: t('meta.tabs.overview'), icon: BarChart3 },
+    { id: "teams", label: t('meta.tabs.teams'), icon: Users },
+    { id: "pokemon", label: t('meta.tabs.pokemonRankings'), icon: Crown },
+    { id: "speed", label: t('meta.tabs.speedTiers'), icon: Timer },
+    { id: "cores", label: t('meta.tabs.corePairs'), icon: Swords },
+    { id: "matchups", label: t('meta.tabs.archetypeMatchups'), icon: Target },
+    { id: "moves", label: t('meta.tabs.moveAnalysis'), icon: Zap },
   ];
 
   return (
@@ -382,20 +440,20 @@ export default function MetaPage() {
           <LastUpdated page="meta" />
         </div>
         <p className="text-muted-foreground mt-2 text-sm max-w-2xl">
-          Usage stats, teams, and core pairs from ranked ladder data and {CHAMPIONS_TOURNAMENT_COUNT} community tournaments ({CHAMPIONS_TOURNAMENT_TOTAL_TEAMS.toLocaleString()} teams).
+          {t('meta.description', { count: CHAMPIONS_TOURNAMENT_COUNT, teams: CHAMPIONS_TOURNAMENT_TOTAL_TEAMS.toLocaleString() })}
         </p>
         <div className="flex items-center gap-4 mt-3">
           <a href="/battle-bot" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-300 hover:border-amber-400 transition-colors">
             <Brain className="w-3.5 h-3.5 text-amber-600" />
-            <span className="text-xs font-bold text-amber-700">⚡ 2M+ Battle Engine</span>
+            <span className="text-xs font-bold text-amber-700">{t('meta.badges.battleEngine')}</span>
           </a>
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200">
             <Award className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="text-xs font-medium text-emerald-700">{_VALID_CHAMPIONS_TEAMS.length} Tournament Results</span>
+            <span className="text-xs font-medium text-emerald-700">{t('meta.badges.tournaments', { count: _VALID_CHAMPIONS_TEAMS.length })}</span>
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-50 border border-cyan-200">
             <Swords className="w-3.5 h-3.5 text-cyan-600" />
-            <span className="text-xs font-medium text-cyan-700">{_VALID_CORE_PAIRS.length} Core Pairs</span>
+            <span className="text-xs font-medium text-cyan-700">{t('meta.badges.corePairs', { count: _VALID_CORE_PAIRS.length })}</span>
           </div>
         </div>
       </motion.div>
@@ -429,12 +487,12 @@ export default function MetaPage() {
           <div className="glass rounded-2xl p-6 border-2 border-amber-300/80 bg-gradient-to-br from-amber-50/60 via-white to-yellow-50/60 shadow-lg shadow-amber-100/50">
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-xl font-extrabold flex items-center gap-2">
-                <Crown className="w-6 h-6 text-amber-500" /> Pokémon Champions Usage Rankings
+                <Crown className="w-6 h-6 text-amber-500" /> {t('meta.usageRankings')}
               </h2>
-              <span className="px-3 py-1 text-[10px] font-bold uppercase rounded-full bg-amber-100 text-amber-700 border border-amber-200">Real Game Data</span>
+              <span className="px-3 py-1 text-[10px] font-bold uppercase rounded-full bg-amber-100 text-amber-700 border border-amber-200">{t('meta.realGameData')}</span>
             </div>
             <p className="text-sm text-muted-foreground mb-5">
-              Live usage data from Pokémon Champions ranked doubles ladder and community tournaments. These are the Pokémon real players are picking right now.
+              {t('meta.liveUsageDesc')}
             </p>
             <div className="space-y-1.5">
               {_VALID_TOURNAMENT_USAGE
@@ -446,15 +504,15 @@ export default function MetaPage() {
                   <div key={p.pokemonId} className="flex items-center gap-2 group cursor-pointer" onClick={() => setModal({ kind: "pokemon", name: p.name })}>
                     <span className={cn("text-xs font-bold w-6 text-center rounded py-0.5", i < 3 ? "bg-amber-100 text-amber-700" : i < 10 ? "bg-gray-100 text-gray-700" : "text-muted-foreground")}>{i + 1}</span>
                     {pokemon && <Image src={pokemon.sprite} alt={p.name} width={28} height={28} className="rounded" unoptimized />}
-                    <span className="text-xs font-semibold w-28 truncate">{p.name}</span>
-                    {pokemon && <div className="flex gap-0.5">{pokemon.types.map(t => <span key={t} className="px-1 py-0.5 text-[7px] font-bold uppercase rounded text-white/90" style={{ backgroundColor: `${TYPE_COLORS[t]}AA` }}>{t.slice(0, 3)}</span>)}</div>}
+                    <span className="text-xs font-semibold w-28 truncate">{tp(p.name)}</span>
+                    {pokemon && <div className="flex gap-0.5">{pokemon.types.map(ty => <span key={ty} className="px-1 py-0.5 text-[7px] font-bold uppercase rounded text-white/90" style={{ backgroundColor: `${TYPE_COLORS[ty]}AA` }}>{tt(ty)}</span>)}</div>}
                     <div className="flex-1 relative h-5 bg-gray-100 rounded overflow-hidden">
                       <div className={cn("absolute inset-y-0 left-0 rounded opacity-80 group-hover:opacity-100 transition-opacity", i < 3 ? "bg-gradient-to-r from-amber-400 to-orange-400" : i < 10 ? "bg-gradient-to-r from-orange-300 to-red-300" : "bg-gradient-to-r from-gray-300 to-gray-400")} style={{ width: `${(p.usageRate / maxUsage) * 100}%` }} />
                       <div className="absolute inset-0 flex items-center px-2">
                         <span className="text-[10px] font-bold text-white drop-shadow-sm">{p.usageRate}%</span>
                       </div>
                     </div>
-                    <span className={cn("text-[10px] font-bold w-12 text-right", p.winRate >= 53 ? "text-green-600" : p.winRate >= 50 ? "text-gray-700" : "text-red-600")}>{p.winRate}% WR</span>
+                    <span className={cn("text-[10px] font-bold w-12 text-right", p.winRate >= 53 ? "text-green-600" : p.winRate >= 50 ? "text-gray-700" : "text-red-600")}>{p.winRate}% {t('meta.wrAbbr')}</span>
                   </div>
                 );
               })}
@@ -465,23 +523,23 @@ export default function MetaPage() {
           </div>
 
           {/* ═══ 2. TOURNAMENT TEAMS (Real Results) ═══ */}
-          <div className="glass rounded-2xl p-6 border-2 border-amber-200/80 bg-gradient-to-br from-amber-50/30 via-white to-yellow-50/30">
+          <div className="glass rounded-2xl p-6 border-2 border-amber-200/80 dark:border-amber-500/20 bg-gradient-to-br from-amber-50/30 via-white to-yellow-50/30 dark:from-amber-950/20 dark:via-transparent dark:to-yellow-950/20">
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-lg font-extrabold flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-amber-500" /> Tournament Winning Teams
+                <Trophy className="w-5 h-5 text-amber-500" /> {t('meta.tournamentWinningTeams')}
               </h2>
-              <span className="px-3 py-1 text-[10px] font-bold uppercase rounded-full bg-amber-100 text-amber-700 border border-amber-200">{_VALID_CHAMPIONS_TEAMS.length} Real Teams</span>
+              <span className="px-3 py-1 text-[10px] font-bold uppercase rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30">{t('meta.realTeams', { count: _VALID_CHAMPIONS_TEAMS.length })}</span>
             </div>
             <p className="text-sm text-muted-foreground mb-5">
-              Top-placing teams from Pokémon Champions community tournaments. Click any team for full breakdown with sets.
+              {t('meta.tournamentWinningDesc')}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {[..._VALID_CHAMPIONS_TEAMS].sort((a, b) => a.placement - b.placement || b.players - a.players).slice(0, 8).map(team => {
                 const teamPokemon = team.pokemonIds.map(id => POKEMON_SEED.find(p => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p);
                 return (
-                  <div key={team.id} className="p-4 rounded-xl border hover:shadow-md transition-all cursor-pointer bg-white/60 border-amber-200/60 hover:border-amber-300" onClick={() => setModal({ kind: "tournament-team", id: team.id })}>
+                  <div key={team.id} className="p-4 rounded-xl border hover:shadow-md transition-all cursor-pointer bg-white/60 dark:bg-white/[0.04] border-amber-200/60 dark:border-amber-500/15 hover:border-amber-300 dark:hover:border-amber-500/30" onClick={() => setModal({ kind: "tournament-team", id: team.id })}>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={cn("px-2 py-0.5 text-[10px] font-bold rounded", team.placement === 1 ? "bg-amber-100 text-amber-700" : team.placement === 2 ? "bg-gray-200 text-gray-700" : "bg-gray-100 text-gray-600")}>
+                      <span className={cn("px-2 py-0.5 text-[10px] font-bold rounded", team.placement === 1 ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400" : team.placement === 2 ? "bg-gray-200 dark:bg-gray-500/20 text-gray-700 dark:text-gray-300" : "bg-gray-100 dark:bg-gray-500/15 text-gray-600 dark:text-gray-400")}>
                         {team.placement === 1 ? "🥇" : team.placement === 2 ? "🥈" : `#${team.placement}`}
                       </span>
                       <div className="flex-1 min-w-0">
@@ -489,7 +547,7 @@ export default function MetaPage() {
                         <p className="text-[10px] text-muted-foreground truncate">{team.tournament}</p>
                       </div>
                       <div className="text-right">
-                        <span className="text-xs font-bold text-emerald-600">{team.wins}W-{team.losses}L</span>
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{team.wins}W-{team.losses}L</span>
                         <p className="text-[9px] text-muted-foreground">{team.players} players</p>
                       </div>
                     </div>
@@ -497,7 +555,7 @@ export default function MetaPage() {
                       {teamPokemon.map(p => (
                         <div key={p.id} className="flex flex-col items-center">
                           <Image src={p.sprite} alt={p.name} width={30} height={30} className="rounded" unoptimized />
-                          <span className="text-[7px] truncate w-10 text-center text-muted-foreground">{p.name}</span>
+                          <span className="text-[7px] truncate w-10 text-center text-muted-foreground">{tp(p.name)}</span>
                         </div>
                       ))}
                     </div>
@@ -506,16 +564,16 @@ export default function MetaPage() {
               })}
             </div>
             <button onClick={() => setActiveTab("teams")} className="mt-4 text-xs text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1">
-              View all {_VALID_CHAMPIONS_TEAMS.length} tournament teams <ArrowRight className="w-3 h-3" />
+              {t('meta.viewAllTournamentTeams').replace('{count}', String(_VALID_CHAMPIONS_TEAMS.length))} <ArrowRight className="w-3 h-3" />
             </button>
           </div>
 
           {/* ═══ 3. TOURNAMENT CORE PAIRS + TYPE DISTRIBUTION (2-col real data) ═══ */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Tournament Core Pairs */}
-            <div className="glass rounded-2xl p-5 border border-amber-200/60">
+            <div className="glass rounded-2xl p-5 border border-amber-200/60 dark:border-amber-500/20">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Users className="w-4 h-4 text-amber-500" /> Tournament Core Pairs
+                <Users className="w-4 h-4 text-amber-500" /> {t('meta.tournamentCorePairs')}
               </h3>
               <div className="space-y-2">
                 {_VALID_CORE_PAIRS
@@ -523,39 +581,39 @@ export default function MetaPage() {
                   const p1 = POKEMON_SEED.find(p => p.id === cp.pokemon1);
                   const p2 = POKEMON_SEED.find(p => p.id === cp.pokemon2);
                   return (
-                    <div key={cp.name} className="p-2.5 rounded-xl bg-amber-50/50 border border-amber-100 cursor-pointer hover:border-amber-300 transition-colors" onClick={() => setModal({ kind: "core", pair: cp.name })}>
+                    <div key={cp.name} className="p-2.5 rounded-xl bg-amber-50/50 dark:bg-amber-500/[0.06] border border-amber-100 dark:border-amber-500/15 cursor-pointer hover:border-amber-300 dark:hover:border-amber-500/30 transition-colors" onClick={() => setModal({ kind: "core", pair: cp.name })}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           {p1 && <Image src={p1.sprite} alt={p1.name} width={24} height={24} className="rounded" unoptimized />}
                           <span className="text-[10px] text-muted-foreground">+</span>
                           {p2 && <Image src={p2.sprite} alt={p2.name} width={24} height={24} className="rounded" unoptimized />}
-                          <span className="text-xs font-semibold">{cp.name}</span>
+                          <span className="text-xs font-semibold">{cp.name.split(' + ').map(n => tp(n)).join(' + ')}</span>
                         </div>
-                        <span className={cn("text-xs font-bold", cp.winRate >= 55 ? "text-green-600" : "text-gray-700")}>{cp.winRate}%</span>
+                        <span className={cn("text-xs font-bold", cp.winRate >= 55 ? "text-green-600 dark:text-green-400" : "text-gray-700 dark:text-gray-300")}>{cp.winRate}%</span>
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{cp.usage}% usage · {cp.synergy}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{cp.usage}% {t('meta.usageSuffix')} · {cp.synergy}</p>
                     </div>
                   );
                 })}
               </div>
               <button onClick={() => setActiveTab("cores")} className="mt-3 text-xs text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1">
-                View all {_VALID_CORE_PAIRS.length} core pairs <ArrowRight className="w-3 h-3" />
+                {t('meta.viewAllCorePairs').replace('{count}', String(_VALID_CORE_PAIRS.length))} <ArrowRight className="w-3 h-3" />
               </button>
             </div>
 
             {/* Type Distribution (real data) */}
-            <div className="glass rounded-2xl p-5 border border-gray-200/60">
+            <div className="glass rounded-2xl p-5 border border-gray-200/60 dark:border-white/10">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Star className="w-4 h-4 text-emerald-500" /> Meta Type Distribution
+                <Star className="w-4 h-4 text-emerald-500" /> {t('meta.typeDistribution')}
               </h3>
               {(() => {
                 const typeCounts: Record<string, { count: number; totalWr: number }> = {};
                 topUsage.slice(0, 30).forEach(u => {
                   const pkm = POKEMON_SEED.find(p => p.id === u.pokemonId);
-                  if (pkm) pkm.types.forEach(t => {
-                    if (!typeCounts[t]) typeCounts[t] = { count: 0, totalWr: 0 };
-                    typeCounts[t].count++;
-                    typeCounts[t].totalWr += u.winRate;
+                  if (pkm) pkm.types.forEach(ty => {
+                    if (!typeCounts[ty]) typeCounts[ty] = { count: 0, totalWr: 0 };
+                    typeCounts[ty].count++;
+                    typeCounts[ty].totalWr += u.winRate;
                   });
                 });
                 const sorted = Object.entries(typeCounts).sort((a, b) => b[1].count - a[1].count);
@@ -563,14 +621,14 @@ export default function MetaPage() {
                 return (
                   <div className="grid grid-cols-3 gap-2">
                     {sorted.slice(0, 12).map(([type, data]) => (
-                      <div key={type} className="p-2 rounded-xl border border-gray-200 text-center" style={{ backgroundColor: `${TYPE_COLORS[type as PokemonType]}10` }}>
-                        <div className="w-6 h-6 rounded-md mx-auto mb-0.5 flex items-center justify-center text-white text-[8px] font-bold uppercase" style={{ backgroundColor: TYPE_COLORS[type as PokemonType] }}>{type.slice(0, 3)}</div>
-                        <p className="text-[10px] font-bold capitalize">{type}</p>
+                      <div key={type} className="p-2 rounded-xl border border-gray-200 dark:border-white/10 text-center" style={{ backgroundColor: `${TYPE_COLORS[type as PokemonType]}10` }}>
+                        <div className="w-6 h-6 rounded-md mx-auto mb-0.5 flex items-center justify-center text-white text-[8px] font-bold uppercase" style={{ backgroundColor: TYPE_COLORS[type as PokemonType] }}>{tt(type)}</div>
+                        <p className="text-[10px] font-bold capitalize">{tty(type)}</p>
                         <p className="text-sm font-extrabold">{data.count}</p>
-                        <p className={cn("text-[9px] font-medium", (data.totalWr / data.count) >= 52 ? "text-green-600" : "text-gray-500")}>
-                          {(data.totalWr / data.count).toFixed(1)}% WR
+                        <p className={cn("text-[9px] font-medium", (data.totalWr / data.count) >= 52 ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400")}>
+                          {(data.totalWr / data.count).toFixed(1)}% {t('meta.wrAbbr')}
                         </p>
-                        <div className="mt-0.5 h-1 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="mt-0.5 h-1 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${(data.count / maxCount) * 100}%`, backgroundColor: TYPE_COLORS[type as PokemonType] }} />
                         </div>
                       </div>
@@ -584,37 +642,37 @@ export default function MetaPage() {
           {/* ═══ 3b. ARCHETYPES + CURATED TEAMS (2-col) ═══ */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Archetype Rankings */}
-            <div className="glass rounded-2xl p-5 border border-gray-200/60">
+            <div className="glass rounded-2xl p-5 border border-gray-200/60 dark:border-white/10">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-cyan-500" /> Archetype Rankings
+                <BarChart3 className="w-4 h-4 text-cyan-500" /> {t('meta.archetypeRankings')}
               </h3>
               <div className="space-y-2">
                 {ML_ARCHETYPES.slice(0, 8).map((a, i) => (
-                  <div key={a.name} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 cursor-pointer hover:bg-gray-100 transition-all" onClick={() => setModal({ kind: "archetype", name: a.name })}>
-                    <span className={cn("w-5 h-5 rounded text-[9px] font-bold flex items-center justify-center", i < 2 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600")}>{i + 1}</span>
+                  <div key={a.name} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-white/[0.04] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.07] transition-all" onClick={() => setModal({ kind: "archetype", name: a.name })}>
+                    <span className={cn("w-5 h-5 rounded text-[9px] font-bold flex items-center justify-center", i < 2 ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400" : "bg-gray-100 dark:bg-gray-500/15 text-gray-600 dark:text-gray-400")}>{i + 1}</span>
                     <span className="text-xs font-semibold flex-1">{a.name}</span>
-                    <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="w-20 h-1.5 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
                       <div className={cn("h-full rounded-full", a.wr >= 60 ? "bg-green-400" : a.wr >= 52 ? "bg-emerald-400" : "bg-gray-400")} style={{ width: `${a.wr}%` }} />
                     </div>
-                    <span className={cn("text-xs font-bold w-10 text-right", a.wr >= 60 ? "text-green-600" : a.wr >= 52 ? "text-emerald-600" : "text-gray-700")}>{a.wr}%</span>
+                    <span className={cn("text-xs font-bold w-10 text-right", a.wr >= 60 ? "text-green-600 dark:text-green-400" : a.wr >= 52 ? "text-emerald-600 dark:text-emerald-400" : "text-gray-700 dark:text-gray-300")}>{a.wr}%</span>
                   </div>
                 ))}
               </div>
               <button onClick={() => setActiveTab("matchups")} className="mt-3 text-xs text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-1">
-                View matchup details <ArrowRight className="w-3 h-3" />
+                {t('meta.viewMatchupDetails')} <ArrowRight className="w-3 h-3" />
               </button>
             </div>
 
             {/* Curated Teams */}
-            <div className="glass rounded-2xl p-5 border border-gray-200/60">
+            <div className="glass rounded-2xl p-5 border border-gray-200/60 dark:border-white/10">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Award className="w-4 h-4 text-amber-500" /> Curated Teams
+                <Award className="w-4 h-4 text-amber-500" /> {t('meta.curatedTeams')}
               </h3>
               <div className="space-y-2">
                 {_VALID_PREBUILT_TEAMS.slice(0, 5).map(team => (
-                  <div key={team.id} className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer hover:border-emerald-300 hover:shadow-sm transition-all" onClick={() => setModal({ kind: "prebuilt", id: team.id })}>
+                  <div key={team.id} className="p-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/10 cursor-pointer hover:border-emerald-300 dark:hover:border-emerald-500/30 hover:shadow-sm transition-all" onClick={() => setModal({ kind: "prebuilt", id: team.id })}>
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded uppercase", team.tier === "S" ? "bg-amber-100 text-amber-700" : team.tier === "A" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600")}>{team.tier}</span>
+                      <span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded uppercase", team.tier === "S" ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400" : team.tier === "A" ? "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400" : "bg-gray-100 dark:bg-gray-500/15 text-gray-600 dark:text-gray-400")}>{team.tier}</span>
                       <span className="text-xs font-semibold truncate flex-1">{team.name}</span>
                       <span className="text-[9px] text-muted-foreground capitalize">{team.archetype}</span>
                     </div>
@@ -628,7 +686,7 @@ export default function MetaPage() {
                 ))}
               </div>
               <button onClick={() => setActiveTab("teams")} className="mt-3 text-xs text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1">
-                View all teams <ArrowRight className="w-3 h-3" />
+                {t('meta.viewAllTeams')} <ArrowRight className="w-3 h-3" />
               </button>
             </div>
           </div>
@@ -636,9 +694,9 @@ export default function MetaPage() {
           {/* ═══ 4. COUNTER MATCHUPS + KEY MOVES (2-col) ═══ */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Counter Matchups */}
-            <div className="glass rounded-2xl p-5 border border-gray-200/60">
+            <div className="glass rounded-2xl p-5 border border-gray-200/60 dark:border-white/10">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Target className="w-4 h-4 text-red-500" /> Key Counter Matchups
+                <Target className="w-4 h-4 text-red-500" /> {t('meta.keyCounterMatchups')}
               </h3>
               <div className="space-y-2">
                 {(() => { const filtered = ARCHETYPE_MATCHUPS.filter(m => Math.abs(m.winRate1 - 50) >= 3).sort((a, b) => Math.abs(b.winRate1 - 50) - Math.abs(a.winRate1 - 50)).slice(0, 6); return filtered.length > 0 ? filtered : ARCHETYPE_MATCHUPS.sort((a, b) => Math.abs(b.winRate1 - 50) - Math.abs(a.winRate1 - 50)).slice(0, 6); })().map((m, i) => {
@@ -647,17 +705,17 @@ export default function MetaPage() {
                   const loser = dominant ? m.archetype2 : m.archetype1;
                   const wr = dominant ? m.winRate1 : 100 - m.winRate1;
                   return (
-                    <div key={i} className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer hover:shadow-md transition-all" onClick={() => setModal({ kind: "archetype", name: winner })}>
+                    <div key={i} className="p-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/10 cursor-pointer hover:shadow-md transition-all" onClick={() => setModal({ kind: "archetype", name: winner })}>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-bold text-green-600">{winner}</span>
+                        <span className="text-xs font-bold text-green-600 dark:text-green-400">{winner}</span>
                         <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-xs font-bold text-red-600">{loser}</span>
+                        <span className="text-xs font-bold text-red-600 dark:text-red-400">{loser}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="flex-1 h-1.5 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
                           <div className={cn("h-full rounded-full", wr >= 65 ? "bg-green-400" : "bg-emerald-400")} style={{ width: `${wr}%` }} />
                         </div>
-                        <span className="text-xs font-bold text-green-600">{wr.toFixed(0)}%</span>
+                        <span className="text-xs font-bold text-green-600 dark:text-green-400">{wr.toFixed(0)}%</span>
                       </div>
                     </div>
                   );
@@ -669,24 +727,24 @@ export default function MetaPage() {
             </div>
 
             {/* Top Moves */}
-            <div className="glass rounded-2xl p-5 border border-gray-200/60">
+            <div className="glass rounded-2xl p-5 border border-gray-200/60 dark:border-white/10">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Zap className="w-4 h-4 text-amber-500" /> Highest Win-Rate Moves
+                <Zap className="w-4 h-4 text-amber-500" /> {t('meta.highestWinRateMoves')}
               </h3>
               <div className="space-y-2">
                 {ML_BEST_MOVES.slice(0, 8).map((m, i) => (
-                  <div key={m.name} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setModal({ kind: "move", name: m.name })}>
-                    <span className={cn("w-5 h-5 rounded text-[9px] font-bold flex items-center justify-center", i < 3 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600")}>{i + 1}</span>
-                    <span className="text-xs font-semibold flex-1">{m.name}</span>
-                    <span className={cn("text-xs font-bold", m.wr >= 65 ? "text-green-600" : m.wr >= 60 ? "text-emerald-600" : "text-gray-700")}>{m.wr}%</span>
-                    <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div key={m.name} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-white/[0.04] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.07] transition-colors" onClick={() => setModal({ kind: "move", name: m.name })}>
+                    <span className={cn("w-5 h-5 rounded text-[9px] font-bold flex items-center justify-center", i < 3 ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400" : "bg-gray-100 dark:bg-gray-500/15 text-gray-600 dark:text-gray-400")}>{i + 1}</span>
+                    <span className="text-xs font-semibold flex-1">{tm(m.name)}</span>
+                    <span className={cn("text-xs font-bold", m.wr >= 65 ? "text-green-600 dark:text-green-400" : m.wr >= 60 ? "text-emerald-600 dark:text-emerald-400" : "text-gray-700 dark:text-gray-300")}>{m.wr}%</span>
+                    <div className="w-16 h-1.5 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
                       <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-400" style={{ width: `${m.wr}%` }} />
                     </div>
                   </div>
                 ))}
               </div>
               <button onClick={() => setActiveTab("moves")} className="mt-3 text-xs text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1">
-                View all move analysis <ArrowRight className="w-3 h-3" />
+                {t('meta.viewAllMoveAnalysis')} <ArrowRight className="w-3 h-3" />
               </button>
             </div>
           </div>
@@ -695,40 +753,40 @@ export default function MetaPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="glass rounded-2xl p-5 border border-emerald-200/60">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-emerald-500" /> Rising in the Meta
+                <TrendingUp className="w-4 h-4 text-emerald-500" /> {t('meta.rising')}
               </h3>
               <div className="space-y-2">
                 {trends.risers.map(p => {
                   const pokemon = POKEMON_SEED.find(pk => pk.id === p.pokemonId);
                   return (
-                    <div key={p.pokemonId} className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50/50 border border-emerald-100 cursor-pointer hover:bg-emerald-100/50 transition-colors" onClick={() => setModal({ kind: "pokemon", name: p.name })}>
+                    <div key={p.pokemonId} className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-500/[0.06] border border-emerald-100 dark:border-emerald-500/15 cursor-pointer hover:bg-emerald-100/50 dark:hover:bg-emerald-500/10 transition-colors" onClick={() => setModal({ kind: "pokemon", name: p.name })}>
                       {pokemon && <Image src={pokemon.sprite} alt={p.name} width={28} height={28} className="rounded" unoptimized />}
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold">{p.name}</p>
+                        <p className="text-xs font-semibold">{tp(p.name)}</p>
                         <p className="text-[10px] text-muted-foreground">{p.usageRate}% usage</p>
                       </div>
-                      <span className="text-xs font-bold text-emerald-600">{p.winRate}%</span>
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{p.winRate}%</span>
                       <TrendingUp className="w-3 h-3 text-emerald-500" />
                     </div>
                   );
                 })}
               </div>
             </div>
-            <div className="glass rounded-2xl p-5 border border-red-200/60">
+            <div className="glass rounded-2xl p-5 border border-red-200/60 dark:border-red-500/20">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <TrendingDown className="w-4 h-4 text-red-500" /> Falling in the Meta
+                <TrendingDown className="w-4 h-4 text-red-500" /> {t('meta.falling')}
               </h3>
               <div className="space-y-2">
                 {trends.fallers.length > 0 ? trends.fallers.map(p => {
                   const pokemon = POKEMON_SEED.find(pk => pk.id === p.pokemonId);
                   return (
-                    <div key={p.pokemonId} className="flex items-center gap-2 p-2 rounded-lg bg-red-50/50 border border-red-100 cursor-pointer hover:bg-red-100/50 transition-colors" onClick={() => setModal({ kind: "pokemon", name: p.name })}>
+                    <div key={p.pokemonId} className="flex items-center gap-2 p-2 rounded-lg bg-red-50/50 dark:bg-red-500/[0.06] border border-red-100 dark:border-red-500/15 cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-500/10 transition-colors" onClick={() => setModal({ kind: "pokemon", name: p.name })}>
                       {pokemon && <Image src={pokemon.sprite} alt={p.name} width={28} height={28} className="rounded" unoptimized />}
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold">{p.name}</p>
+                        <p className="text-xs font-semibold">{tp(p.name)}</p>
                         <p className="text-[10px] text-muted-foreground">{p.usageRate}% usage</p>
                       </div>
-                      <span className="text-xs font-bold text-red-600">{p.winRate}%</span>
+                      <span className="text-xs font-bold text-red-600 dark:text-red-400">{p.winRate}%</span>
                       <TrendingDown className="w-3 h-3 text-red-500" />
                     </div>
                   );
@@ -737,8 +795,8 @@ export default function MetaPage() {
                     <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-3">
                       <TrendingDown className="w-6 h-6 text-red-300" />
                     </div>
-                    <p className="text-sm font-semibold text-muted-foreground">No Pokémon falling</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">The meta is stable — all used Pokémon are above 50% win rate</p>
+                    <p className="text-sm font-semibold text-muted-foreground">{t('meta.noFalling')}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{t('meta.noFallingDesc')}</p>
                   </div>
                 )}
               </div>
@@ -750,13 +808,13 @@ export default function MetaPage() {
             {/* ML Predicted Meta Teams */}
             <div className="glass rounded-2xl p-5 border border-emerald-200/60">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-emerald-500" /> Engine Predicted Meta
+                <Sparkles className="w-4 h-4 text-emerald-500" /> {t('meta.enginePredicted')}
                 <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-emerald-100 text-emerald-700">ML</span>
               </h3>
-              <p className="text-[10px] text-muted-foreground mb-3">Teams predicted from 2M simulated battles + tournament data</p>
+              <p className="text-[10px] text-muted-foreground mb-3">{t('meta.enginePredictedDesc')}</p>
               <div className="space-y-2">
                 {metaTeams.slice(0, 4).map(meta => (
-                  <div key={meta.id} className="p-3 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer hover:border-emerald-300 hover:shadow-sm transition-all" onClick={() => setExpandedTeam(expandedTeam === meta.id ? null : meta.id)}>
+                  <div key={meta.id} className="p-3 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/10 cursor-pointer hover:border-emerald-300 dark:hover:border-emerald-500/30 hover:shadow-sm transition-all" onClick={() => setExpandedTeam(expandedTeam === meta.id ? null : meta.id)}>
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
                         <span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", meta.confidence >= 80 ? "bg-emerald-100 text-emerald-700" : meta.confidence >= 60 ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600")}>{meta.confidence}%</span>
@@ -776,7 +834,7 @@ export default function MetaPage() {
             <div className="space-y-4">
               <div className="glass rounded-2xl p-5 border border-emerald-200/60">
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <Brain className="w-4 h-4 text-emerald-500" /> ML Engine Insights
+                  <Brain className="w-4 h-4 text-emerald-500" /> {t('meta.mlInsights')}
                   <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-emerald-100 text-emerald-700">ML</span>
                 </h3>
                 <div className="space-y-2">
@@ -791,7 +849,7 @@ export default function MetaPage() {
                         insight.type === "meta" || insight.type === "synergy" ? "bg-emerald-100 text-emerald-700" :
                         insight.type === "counter" ? "bg-amber-100 text-amber-700" : "bg-cyan-100 text-cyan-700"
                       )}>{insight.type}</span>
-                      <p className="text-[11px] text-foreground flex-1 leading-snug">{insight.text}</p>
+                      <p className="text-[11px] text-foreground flex-1 leading-snug">{translateMLInsight(insight.text)}</p>
                     </div>
                   ))}
                 </div>
@@ -800,24 +858,24 @@ export default function MetaPage() {
               {/* Engine Quality compact */}
               <div className="glass rounded-2xl p-4 border border-emerald-200/60 bg-gradient-to-r from-emerald-50/30 to-cyan-50/30">
                 <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
-                  <Zap className="w-3 h-3 text-emerald-500" /> Battle Engine Quality
+                  <Zap className="w-3 h-3 text-emerald-500" /> {t('meta.battleEngineQuality')}
                 </h3>
                 <div className="grid grid-cols-4 gap-2">
                   <div className="text-center">
                     <p className="text-sm font-extrabold text-emerald-700">10.7</p>
-                    <p className="text-[8px] text-muted-foreground">Turns/Battle</p>
+                    <p className="text-[8px] text-muted-foreground">{t('meta.turnsPerBattle')}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-extrabold text-cyan-700">23.1%</p>
-                    <p className="text-[8px] text-muted-foreground">Protect Rate</p>
+                    <p className="text-[8px] text-muted-foreground">{t('meta.protectRate')}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-extrabold text-emerald-700">8.7%</p>
-                    <p className="text-[8px] text-muted-foreground">Switch Rate</p>
+                    <p className="text-[8px] text-muted-foreground">{t('meta.switchRate')}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-extrabold text-amber-700">98.1%</p>
-                    <p className="text-[8px] text-muted-foreground">Move Coverage</p>
+                    <p className="text-[8px] text-muted-foreground">{t('meta.moveCoverageRate')}</p>
                   </div>
                 </div>
               </div>
@@ -827,9 +885,9 @@ export default function MetaPage() {
           {/* ═══ 7. ML DEEP DIVE (2-col: Rankings + Cores) ═══ */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* ML Pokemon Rankings */}
-            <div className="glass rounded-2xl p-5 border border-gray-200/60">
+            <div className="glass rounded-2xl p-5 border border-gray-200/60 dark:border-white/10">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-red-500" /> Top ML Threats
+                <Shield className="w-4 h-4 text-red-500" /> {t('meta.topMlThreats')}
                 <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-emerald-100 text-emerald-700">ML</span>
               </h3>
               <div className="space-y-2">
@@ -837,12 +895,12 @@ export default function MetaPage() {
                   const sprite = getSpriteForName(p.name);
                   const usageData = getPokemonByName(p.name) ? _VALID_TOURNAMENT_USAGE.find(u => u.pokemonId === getPokemonByName(p.name)!.id) : null;
                   return (
-                    <div key={p.name} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setModal({ kind: "pokemon", name: p.name })}>
+                    <div key={p.name} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-white/[0.04] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.07] transition-colors" onClick={() => setModal({ kind: "pokemon", name: p.name })}>
                       <span className={cn("w-5 h-5 rounded text-[9px] font-bold flex items-center justify-center", i < 3 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600")}>{i + 1}</span>
                       {sprite && <Image src={sprite} alt={p.name} width={28} height={28} className="rounded" unoptimized />}
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold truncate">{p.name}</p>
-                        <p className="text-[9px] text-muted-foreground">{p.elo.toLocaleString()} ELO{usageData ? ` · ${usageData.usageRate}% real usage` : ""}</p>
+                        <p className="text-xs font-semibold truncate">{tp(p.name)}</p>
+                        <p className="text-[9px] text-muted-foreground">{p.elo.toLocaleString()} ELO{usageData ? ` · ${usageData.usageRate}% ${t('meta.realUsage')}` : ""}</p>
                       </div>
                       <span className={cn("text-xs font-bold", p.wr >= 55 ? "text-green-600" : p.wr >= 50 ? "text-emerald-600" : "text-amber-600")}>{p.wr}%</span>
                     </div>
@@ -850,14 +908,14 @@ export default function MetaPage() {
                 })}
               </div>
               <button onClick={() => setActiveTab("pokemon")} className="mt-3 text-xs text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1">
-                View all rankings <ArrowRight className="w-3 h-3" />
+                {t('meta.viewAllRankings')} <ArrowRight className="w-3 h-3" />
               </button>
             </div>
 
             {/* ML Cores */}
-            <div className="glass rounded-2xl p-5 border border-gray-200/60">
+            <div className="glass rounded-2xl p-5 border border-gray-200/60 dark:border-white/10">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Swords className="w-4 h-4 text-cyan-500" /> ML-Discovered Cores
+                <Swords className="w-4 h-4 text-cyan-500" /> {t('meta.mlCores')}
                 <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-emerald-100 text-emerald-700">ML</span>
               </h3>
               <div className="space-y-2">
@@ -869,16 +927,16 @@ export default function MetaPage() {
                           const sp = getSpriteForName(name);
                           return sp ? <Image key={name} src={sp} alt={name} width={24} height={24} className="rounded" unoptimized /> : <span key={name} className="text-xs">{name}</span>;
                         })}
-                        <span className="text-xs font-semibold">{c.pair}</span>
+                        <span className="text-xs font-semibold">{c.pair.split(" + ").map(n => tp(n)).join(" + ")}</span>
                       </div>
                       <span className="text-xs font-bold text-green-600">{c.wr}%</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{c.games.toLocaleString()} games</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{c.games.toLocaleString()} {t('meta.games')}</p>
                   </div>
                 ))}
               </div>
               <button onClick={() => setActiveTab("cores")} className="mt-3 text-xs text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-1">
-                View all cores <ArrowRight className="w-3 h-3" />
+                {t('meta.viewAllCores')} <ArrowRight className="w-3 h-3" />
               </button>
             </div>
           </div>
@@ -896,12 +954,12 @@ export default function MetaPage() {
           <div className="glass rounded-2xl p-6 border-2 border-amber-200/80 bg-gradient-to-br from-amber-50/40 via-white to-yellow-50/40 shadow-lg shadow-amber-100/30">
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-lg font-extrabold flex items-center gap-2">
-                <Crown className="w-5 h-5 text-amber-500" /> Pokémon Champions Official Usage Stats
+                <Crown className="w-5 h-5 text-amber-500" /> {t('meta.officialUsage')}
               </h2>
-              <span className="px-3 py-1 text-[10px] font-bold uppercase rounded-full bg-amber-100 text-amber-700 border border-amber-200">In-Game Ranked Data</span>
+              <span className="px-3 py-1 text-[10px] font-bold uppercase rounded-full bg-amber-100 text-amber-700 border border-amber-200">{t('meta.inGameRankedData')}</span>
             </div>
             <p className="text-sm text-muted-foreground mb-5">
-              Real usage data from Nintendo&apos;s Champions Ranked Doubles ladder (April 2026). Rankings reflect actual player pick rates across all skill brackets.
+              {t('meta.officialUsageDesc')}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {_VALID_TOURNAMENT_USAGE
@@ -916,8 +974,8 @@ export default function MetaPage() {
                       className={cn(
                         "flex items-center gap-3 p-3 rounded-xl transition-colors cursor-pointer",
                         i < 5 ? "bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 hover:border-amber-300" :
-                        i < 15 ? "bg-gray-50/80 border border-gray-100 hover:border-gray-200" :
-                        "bg-gray-50/50 hover:bg-gray-100/80"
+                        i < 15 ? "bg-gray-50/80 dark:bg-white/[0.04] border border-gray-100 dark:border-white/[0.06] hover:border-gray-200 dark:hover:border-white/10" :
+                        "bg-gray-50/50 dark:bg-white/[0.03] hover:bg-gray-100/80 dark:hover:bg-white/[0.06]"
                       )}
                       onClick={() => setModal({ kind: "pokemon", name: p.name })}
                     >
@@ -927,12 +985,12 @@ export default function MetaPage() {
                       )}>{i + 1}</span>
                       {pokemon && <Image src={pokemon.sprite} alt={p.name} width={36} height={36} className="drop-shadow-sm" unoptimized />}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold truncate">{p.name}</p>
+                        <p className="text-sm font-bold truncate">{tp(p.name)}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="flex-1 h-1.5 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
                             <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-400" style={{ width: `${Math.min(100, (p.usageRate / maxUsage) * 100)}%` }} />
                           </div>
-                          <span className="text-xs font-bold text-amber-700 tabular-nums shrink-0">{p.usageRate}%</span>
+                          <span className="text-xs font-bold text-amber-700 dark:text-amber-300 tabular-nums shrink-0">{p.usageRate}%</span>
                         </div>
                       </div>
                     </div>
@@ -950,25 +1008,25 @@ export default function MetaPage() {
             {showAllOfficial && (
               <button
                 onClick={() => setShowAllOfficial(false)}
-                className="mt-4 w-full py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-600 text-sm font-medium hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
+                className="mt-4 w-full py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.04] text-gray-600 dark:text-gray-400 text-sm font-medium hover:bg-gray-100 dark:hover:bg-white/[0.07] transition-all flex items-center justify-center gap-2"
               >
-                Show Less <ChevronUp className="w-4 h-4" />
+                {t('common.showLess')} <ChevronUp className="w-4 h-4" />
               </button>
             )}
           </div>
 
           {/* ═══ 2. CHAMPIONS OFFICIAL & COMMUNITY TOURNAMENT USAGE ═══ */}
-          <div className="glass rounded-2xl p-6 border border-indigo-200/60 bg-gradient-to-br from-indigo-50/30 via-white to-violet-50/30">
+          <div className="glass rounded-2xl p-6 border border-indigo-200/60 dark:border-indigo-500/20 bg-gradient-to-br from-indigo-50/30 via-white to-violet-50/30 dark:from-indigo-950/20 dark:via-transparent dark:to-violet-950/20">
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-lg font-bold flex items-center gap-2">
-                <Award className="w-5 h-5 text-indigo-500" /> Champions Official & Community Tournament Usage
+                <Award className="w-5 h-5 text-indigo-500" /> {t('meta.communityUsage')}
               </h2>
-              <span className="px-3 py-1 text-[10px] font-bold uppercase rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200">
-                {CHAMPIONS_TOURNAMENT_TOTAL_TEAMS.toLocaleString()} Teams · {CHAMPIONS_TOURNAMENT_COUNT} Tournaments
+              <span className="px-3 py-1 text-[10px] font-bold uppercase rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30">
+                {t('meta.teamsCount', { count: CHAMPIONS_TOURNAMENT_TOTAL_TEAMS.toLocaleString() })} · {CHAMPIONS_TOURNAMENT_COUNT} {t('meta.tournament')}
               </span>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Real team data from {CHAMPIONS_TOURNAMENT_COUNT} official & community Pokémon Champions tournaments on Limitless (April 2026). Shows actual competitive pick rates and top-8 conversion.
+              {t('meta.communityUsageDesc', { count: CHAMPIONS_TOURNAMENT_COUNT })}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {CHAMPIONS_TOURNAMENT_USAGE.slice(0, 30).map((p, i) => {
@@ -981,29 +1039,29 @@ export default function MetaPage() {
                     key={p.name}
                     className={cn(
                       "flex items-center gap-3 p-3 rounded-xl transition-colors cursor-pointer",
-                      i < 5 ? "bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-200 hover:border-indigo-300" :
-                      i < 15 ? "bg-gray-50/80 border border-gray-100 hover:border-gray-200" :
-                      "bg-gray-50/50 hover:bg-gray-100/80"
+                      i < 5 ? "bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-500/[0.08] dark:to-violet-500/[0.08] border border-indigo-200 dark:border-indigo-500/20 hover:border-indigo-300 dark:hover:border-indigo-500/30" :
+                      i < 15 ? "bg-gray-50/80 dark:bg-white/[0.04] border border-gray-100 dark:border-white/[0.06] hover:border-gray-200 dark:hover:border-white/10" :
+                      "bg-gray-50/50 dark:bg-white/[0.03] hover:bg-gray-100/80 dark:hover:bg-white/[0.06]"
                     )}
                     onClick={() => setModal({ kind: "pokemon", name: p.name })}
                   >
                     <span className={cn(
                       "text-sm font-extrabold w-7 text-center tabular-nums",
-                      i < 3 ? "text-indigo-600" : i < 10 ? "text-gray-600" : "text-gray-400"
+                      i < 3 ? "text-indigo-600 dark:text-indigo-400" : i < 10 ? "text-gray-600 dark:text-gray-300" : "text-gray-400 dark:text-gray-500"
                     )}>{p.rank}</span>
                     {sprite && <Image src={sprite} alt={p.name} width={36} height={36} className="drop-shadow-sm" unoptimized />}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate">{p.name}</p>
+                      <p className="text-sm font-bold truncate">{tp(p.name)}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="flex-1 h-1.5 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
                           <div className="h-full rounded-full bg-gradient-to-r from-indigo-400 to-violet-400" style={{ width: `${Math.min(100, (p.usagePct / maxUsage) * 100)}%` }} />
                         </div>
-                        <span className="text-xs font-bold text-indigo-700 tabular-nums shrink-0">{p.usagePct}%</span>
+                        <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400 tabular-nums shrink-0">{p.usagePct}%</span>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
                       <span className="text-[10px] text-muted-foreground block">{p.count} teams</span>
-                      <span className={cn("text-[10px] font-bold", top8Rate >= 50 ? "text-green-600" : top8Rate >= 30 ? "text-amber-600" : "text-gray-500")}>Top 8: {top8Rate}%</span>
+                      <span className={cn("text-[10px] font-bold", top8Rate >= 50 ? "text-green-600 dark:text-green-400" : top8Rate >= 30 ? "text-amber-600 dark:text-amber-400" : "text-gray-500 dark:text-gray-400")}>Top 8: {top8Rate}%</span>
                     </div>
                   </div>
                 );
@@ -1017,10 +1075,10 @@ export default function MetaPage() {
             {/* ML Simulation Ranking */}
             <div className="glass rounded-2xl p-5 border border-emerald-200/60">
               <h2 className="text-base font-bold mb-1 flex items-center gap-2">
-                <Brain className="w-4 h-4 text-emerald-500" /> ML Simulation Ranking
+                <Brain className="w-4 h-4 text-emerald-500" /> {t('meta.mlSimulationRanking')}
               </h2>
               <p className="text-xs text-muted-foreground mb-3">
-                ELO from {SIM_TOTAL_BATTLES.toLocaleString()} battles. Auto-updated after each engine run.
+                {t('meta.mlSimulationDesc', { count: SIM_TOTAL_BATTLES.toLocaleString() })}
               </p>
               <div className="space-y-1.5">
                 {ML_POKEMON_RANKINGS.slice(0, 15).map((p, i) => {
@@ -1028,13 +1086,13 @@ export default function MetaPage() {
                   return (
                     <div
                       key={p.name}
-                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
                       onClick={() => setModal({ kind: "pokemon", name: p.name })}
                     >
                       <span className={cn("text-xs font-extrabold w-5 text-center tabular-nums", i < 3 ? "text-emerald-600" : "text-gray-400")}>{i + 1}</span>
                       {sprite && <Image src={sprite} alt={p.name} width={28} height={28} className="rounded" unoptimized />}
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm font-semibold truncate block">{p.name}</span>
+                        <span className="text-sm font-semibold truncate block">{tp(p.name)}</span>
                       </div>
                       <span className="text-xs font-mono font-bold text-gray-600 tabular-nums">{p.elo.toLocaleString()}</span>
                       <span className={cn("text-xs font-bold tabular-nums", p.wr >= 55 ? "text-green-600" : p.wr >= 50 ? "text-gray-700" : "text-red-500")}>{p.wr}%</span>
@@ -1050,10 +1108,10 @@ export default function MetaPage() {
             {/* Anti-Meta Ranking */}
             <div className="glass rounded-2xl p-5 border border-purple-200/60">
               <h2 className="text-base font-bold mb-1 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-purple-500" /> Anti-Meta Pokémon Ranking
+                <Shield className="w-4 h-4 text-purple-500" /> {t('meta.antiMetaPokemon')}
               </h2>
               <p className="text-xs text-muted-foreground mb-3">
-                Pokémon that counter the current meta. Scored by win rate vs top 15 threats. Auto-updated after engine runs.
+                {t('meta.antiMetaDesc')}
               </p>
               <div className="space-y-1.5">
                 {ANTI_META_RANKINGS.slice(0, 15).map((p, i) => {
@@ -1061,19 +1119,19 @@ export default function MetaPage() {
                   return (
                     <div
                       key={p.id}
-                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
                       onClick={() => setModal({ kind: "pokemon", name: p.name })}
                     >
                       <span className={cn("text-xs font-extrabold w-5 text-center tabular-nums", i < 3 ? "text-purple-600" : "text-gray-400")}>{i + 1}</span>
                       {pokemon && <Image src={pokemon.sprite} alt={p.name} width={28} height={28} className="rounded" unoptimized />}
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm font-semibold truncate block">{p.name}</span>
+                        <span className="text-sm font-semibold truncate block">{tp(p.name)}</span>
                         <span className="text-[10px] text-muted-foreground">Beats: {p.bestInto.slice(0, 3).join(", ")}</span>
                       </div>
                       <div className="text-right shrink-0">
                         <span className={cn("text-xs font-bold tabular-nums", p.winVsMeta >= 55 ? "text-green-600" : p.winVsMeta >= 52 ? "text-emerald-600" : "text-gray-700")}>{p.winVsMeta}%</span>
                         <div className="flex items-center gap-0.5 mt-0.5">
-                          <div className="w-10 h-1 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="w-10 h-1 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
                             <div className="h-full rounded-full bg-gradient-to-r from-purple-400 to-fuchsia-400" style={{ width: `${p.score}%` }} />
                           </div>
                           <span className="text-[9px] text-purple-600 font-bold">{p.score}</span>
@@ -1093,17 +1151,17 @@ export default function MetaPage() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
 
           {/* ═══ 1. CHAMPIONS TOURNAMENT TEAMS ═══ */}
-          <div className="glass rounded-2xl p-6 border border-amber-200/60 bg-gradient-to-br from-amber-50/30 via-white to-yellow-50/30">
+          <div className="glass rounded-2xl p-6 border border-amber-200/60 dark:border-amber-500/20 bg-gradient-to-br from-amber-50/30 via-white to-yellow-50/30 dark:from-amber-950/20 dark:via-transparent dark:to-yellow-950/20">
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-lg font-bold flex items-center gap-2">
-                <Award className="w-5 h-5 text-amber-500" /> Tournament Teams
+                <Award className="w-5 h-5 text-amber-500" /> {t('meta.tournamentTeams')}
               </h2>
-              <span className="px-3 py-1 text-[10px] font-bold uppercase rounded-full bg-amber-100 text-amber-700 border border-amber-200">
-                {_VALID_CHAMPIONS_TEAMS.length} Teams
+              <span className="px-3 py-1 text-[10px] font-bold uppercase rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30">
+                {t('meta.teamsCount', { count: _VALID_CHAMPIONS_TEAMS.length })}
               </span>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Top teams from {CHAMPIONS_TOURNAMENT_COUNT}+ official and community Pokémon Champions tournaments. Click any team for full breakdown.
+              {t('meta.tournamentTeamsDesc', { count: CHAMPIONS_TOURNAMENT_COUNT })}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {([..._VALID_CHAMPIONS_TEAMS]
@@ -1114,7 +1172,7 @@ export default function MetaPage() {
                 return (
                   <div
                     key={team.id}
-                    className="flex items-center gap-3 p-3 rounded-xl border border-amber-100 bg-white/60 hover:border-amber-300 hover:shadow-md transition-all cursor-pointer"
+                    className="flex items-center gap-3 p-3 rounded-xl border border-amber-100 dark:border-amber-500/15 bg-white/60 dark:bg-white/[0.04] hover:border-amber-300 dark:hover:border-amber-500/30 hover:shadow-md transition-all cursor-pointer"
                     onClick={() => setModal({ kind: "tournament-team", id: team.id })}
                   >
                     <div className="flex -space-x-1 shrink-0">
@@ -1124,13 +1182,13 @@ export default function MetaPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className={cn("px-1.5 py-0.5 text-[9px] font-bold uppercase rounded", team.placement <= 1 ? "bg-amber-100 text-amber-700" : team.placement <= 2 ? "bg-gray-200 text-gray-700" : "bg-gray-100 text-gray-500")}>
+                        <span className={cn("px-1.5 py-0.5 text-[9px] font-bold uppercase rounded", team.placement <= 1 ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400" : team.placement <= 2 ? "bg-gray-200 dark:bg-gray-500/20 text-gray-700 dark:text-gray-300" : "bg-gray-100 dark:bg-gray-500/15 text-gray-500 dark:text-gray-400")}>
                           {team.placement === 1 ? "🥇" : team.placement === 2 ? "🥈" : `Top ${team.placement}`}
                         </span>
                         <span className="text-xs font-semibold truncate">{team.tournament}</span>
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="px-1.5 py-0.5 text-[8px] rounded bg-emerald-50 text-emerald-600 font-medium">{team.wins}W-{team.losses}L</span>
+                        <span className="px-1.5 py-0.5 text-[8px] rounded bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-medium">{team.wins}W-{team.losses}L</span>
                         <span className="text-[9px] text-muted-foreground">{team.player} · {team.players} players</span>
                       </div>
                     </div>
@@ -1150,9 +1208,9 @@ export default function MetaPage() {
             {showAllTournament && (
               <button
                 onClick={() => setShowAllTournament(false)}
-                className="mt-4 w-full py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-600 text-sm font-medium hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
+                className="mt-4 w-full py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.04] text-gray-600 dark:text-gray-400 text-sm font-medium hover:bg-gray-100 dark:hover:bg-white/[0.07] transition-all flex items-center justify-center gap-2"
               >
-                Show Less <ChevronUp className="w-4 h-4" />
+                {t('common.showLess')} <ChevronUp className="w-4 h-4" />
               </button>
             )}
           </div>
@@ -1161,17 +1219,17 @@ export default function MetaPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
             {/* Left: Curated Teams */}
-            <div className="glass rounded-2xl p-5 border border-emerald-200/60 bg-gradient-to-br from-emerald-50/30 via-white to-cyan-50/30">
+            <div className="glass rounded-2xl p-5 border border-emerald-200/60 dark:border-emerald-500/20 bg-gradient-to-br from-emerald-50/30 via-white to-cyan-50/30 dark:from-emerald-950/20 dark:via-transparent dark:to-cyan-950/20">
               <div className="flex items-center justify-between mb-1">
                 <h2 className="text-base font-bold flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-emerald-500" /> Curated Teams
+                  <Sparkles className="w-4 h-4 text-emerald-500" /> {t('meta.curatedTeams')}
                 </h2>
-                <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                  {_VALID_PREBUILT_TEAMS.length} Teams
+                <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
+                  {t('meta.teamsCount', { count: _VALID_PREBUILT_TEAMS.length })}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                Hand-built competitive teams with full sets, items, and SP spreads. Ready to load into the Team Builder.
+                {t('meta.curatedTeamsDesc')}
               </p>
               <div className="space-y-2">
                 {_VALID_PREBUILT_TEAMS
@@ -1182,17 +1240,17 @@ export default function MetaPage() {
                     return (
                       <div
                         key={team.id}
-                        className="flex items-center gap-3 p-3 rounded-xl border border-emerald-100 bg-white/60 hover:border-emerald-300 hover:shadow-md transition-all cursor-pointer"
+                        className="flex items-center gap-3 p-3 rounded-xl border border-emerald-100 dark:border-emerald-500/15 bg-white/60 dark:bg-white/[0.04] hover:border-emerald-300 dark:hover:border-emerald-500/30 hover:shadow-md transition-all cursor-pointer"
                         onClick={() => setModal({ kind: "prebuilt", id: team.id })}
                       >
                         <div className="flex -space-x-1.5 shrink-0">
                           {teamPokemon.slice(0, 6).map((p, pi) => p && (
-                            <Image key={pi} src={p.sprite} alt={p.name} width={26} height={26} className="rounded border border-white shadow-sm" unoptimized />
+                            <Image key={pi} src={p.sprite} alt={p.name} width={26} height={26} className="rounded border border-white dark:border-transparent shadow-sm dark:shadow-none" unoptimized />
                           ))}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", team.tier === "S" ? "bg-amber-100 text-amber-700" : team.tier === "A" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600")}>{team.tier}</span>
+                            <span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", team.tier === "S" ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400" : team.tier === "A" ? "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400" : "bg-gray-100 dark:bg-gray-500/15 text-gray-600 dark:text-gray-400")}>{team.tier}</span>
                             <span className="text-xs font-semibold truncate">{team.name}</span>
                           </div>
                           <span className="text-[10px] text-muted-foreground truncate block">{team.archetype}</span>
@@ -1205,7 +1263,7 @@ export default function MetaPage() {
               {!showAllCurated && _VALID_PREBUILT_TEAMS.length > 8 && (
                 <button
                   onClick={() => setShowAllCurated(true)}
-                  className="mt-3 w-full py-2 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-cyan-50 text-emerald-700 text-xs font-bold hover:border-emerald-300 hover:shadow-md transition-all flex items-center justify-center gap-2"
+                  className="mt-3 w-full py-2 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-gradient-to-r from-emerald-50 to-cyan-50 dark:from-emerald-500/10 dark:to-cyan-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold hover:border-emerald-300 dark:hover:border-emerald-500/50 hover:shadow-md transition-all flex items-center justify-center gap-2"
                 >
                   Show All {_VALID_PREBUILT_TEAMS.length} Teams <ChevronDown className="w-3.5 h-3.5" />
                 </button>
@@ -1213,25 +1271,25 @@ export default function MetaPage() {
               {showAllCurated && (
                 <button
                   onClick={() => setShowAllCurated(false)}
-                  className="mt-3 w-full py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-600 text-xs font-medium hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
+                  className="mt-3 w-full py-2 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.04] text-gray-600 dark:text-gray-400 text-xs font-medium hover:bg-gray-100 dark:hover:bg-white/[0.07] transition-all flex items-center justify-center gap-2"
                 >
-                  Show Less <ChevronUp className="w-3.5 h-3.5" />
+                  {t('common.showLess')} <ChevronUp className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
 
             {/* Right: Anti-Meta Teams */}
-            <div className="glass rounded-2xl p-5 border border-purple-200/60 bg-gradient-to-br from-purple-50/30 via-white to-fuchsia-50/30">
+            <div className="glass rounded-2xl p-5 border border-purple-200/60 dark:border-purple-500/20 bg-gradient-to-br from-purple-50/30 via-white to-fuchsia-50/30 dark:from-purple-950/20 dark:via-transparent dark:to-fuchsia-950/20">
               <div className="flex items-center justify-between mb-1">
                 <h2 className="text-base font-bold flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-purple-500" /> Anti-Meta Teams
+                  <Shield className="w-4 h-4 text-purple-500" /> {t('meta.antiMetaTeams')}
                 </h2>
-                <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded-full bg-purple-100 text-purple-700 border border-purple-200">
-                  {ANTI_META_TEAMS.length} Teams
+                <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded-full bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30">
+                  {t('meta.teamsCount', { count: ANTI_META_TEAMS.length })}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                Counter-teams designed to beat the most common tournament strategies. Built around top anti-meta cores.
+                {t('meta.antiMetaTeamsDesc')}
               </p>
               <div className="space-y-2">
                 {ANTI_META_TEAMS.map(team => {
@@ -1240,11 +1298,11 @@ export default function MetaPage() {
                   return (
                     <div
                       key={team.id}
-                      className="p-3 rounded-xl border border-purple-100 bg-white/60 hover:border-purple-300 hover:shadow-md transition-all cursor-pointer"
+                      className="p-3 rounded-xl border border-purple-100 dark:border-purple-500/15 bg-white/60 dark:bg-white/[0.04] hover:border-purple-300 dark:hover:border-purple-500/30 hover:shadow-md transition-all cursor-pointer"
                       onClick={() => setModal({ kind: "anti-meta", id: team.id })}
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", team.winVsMeta >= 55 ? "bg-green-100 text-green-700" : "bg-purple-100 text-purple-700")}>{team.winVsMeta}% WR</span>
+                        <span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", team.winVsMeta >= 55 ? "bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400" : "bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400")}>{team.winVsMeta}% WR</span>
                         <span className="text-xs font-semibold truncate">{team.name}</span>
                       </div>
                       <div className="flex gap-1 mb-2">
@@ -1258,9 +1316,9 @@ export default function MetaPage() {
                           );
                         })}
                       </div>
-                      <p className="text-[10px] text-muted-foreground line-clamp-2">{team.strategy}</p>
+                      <p className="text-[10px] text-muted-foreground line-clamp-2">{translateAntiMetaStrategy(team.strategy)}</p>
                       <div className="flex flex-wrap gap-1 mt-1.5">
-                        {team.counters.map(c => <span key={c} className="px-1.5 py-0.5 text-[8px] font-medium rounded bg-green-50 text-green-600">✓ {c}</span>)}
+                        {team.counters.map(c => <span key={c} className="px-1.5 py-0.5 text-[8px] font-medium rounded bg-green-50 dark:bg-green-500/15 text-green-600 dark:text-green-400">✓ {tp(c)}</span>)}
                       </div>
                     </div>
                   );
@@ -1276,15 +1334,14 @@ export default function MetaPage() {
       {activeTab === "cores" && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
           <div className="glass rounded-2xl p-6 border border-gray-200/60">
-            <h2 className="text-lg font-bold mb-1">Core Pair Analysis</h2>
+            <h2 className="text-lg font-bold mb-1">{t('meta.corePairAnalysis')}</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              The strongest 2-Pokémon cores in competitive play. Each core pair is rated by tournament win rate, usage, and how well they complement each other.
-              ML simulation cores are shown separately below.
+              {t('meta.corePairDesc')}
             </p>
 
             {/* Tournament Core Pairs (card grid) */}
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Award className="w-4 h-4 text-amber-500" /> Tournament Core Pairs
+              <Award className="w-4 h-4 text-amber-500" /> {t('meta.tournamentCorePairs')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
               {_VALID_CORE_PAIRS
@@ -1293,19 +1350,19 @@ export default function MetaPage() {
                 const p2 = POKEMON_SEED.find(p => p.id === cp.pokemon2);
                 const tier = cp.usage >= 20 ? "S" : cp.usage >= 12 ? "A" : cp.usage >= 6 ? "B" : "C";
                 return (
-                  <div key={`${cp.name}-${idx}`} className="p-4 rounded-xl bg-amber-50/50 border border-amber-200">
+                  <div key={`${cp.name}-${idx}`} className="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-500/[0.06] border border-amber-200 dark:border-amber-500/15">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", tier === "S" ? "bg-amber-100 text-amber-700" : tier === "A" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600")}>{tier}</span>
-                        <span className="text-sm font-bold">{cp.name}</span>
+                        <span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", tier === "S" ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400" : tier === "A" ? "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400" : "bg-gray-100 dark:bg-gray-500/15 text-gray-600 dark:text-gray-400")}>{tier}</span>
+                        <span className="text-sm font-bold">{cp.name.split(' + ').map(n => tp(n)).join(' + ')}</span>
                       </div>
-                      <span className={cn("text-sm font-bold", cp.winRate >= 55 ? "text-green-600" : "text-emerald-600")}>{cp.winRate}% WR</span>
+                      <span className={cn("text-sm font-bold", cp.winRate >= 55 ? "text-green-600 dark:text-green-400" : "text-emerald-600 dark:text-emerald-400")}>{cp.winRate}% {t('meta.wrAbbr')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       {p1 && <Image src={p1.sprite} alt={p1.name} width={36} height={36} className="rounded" unoptimized />}
                       {p2 && <Image src={p2.sprite} alt={p2.name} width={36} height={36} className="rounded" unoptimized />}
                       <div className="flex-1" />
-                      <span className="text-xs text-muted-foreground">{cp.usage}% usage · {cp.synergy}</span>
+                      <span className="text-xs text-muted-foreground">{cp.usage}% {t('meta.usageSuffix')} · {cp.synergy}</span>
                     </div>
                   </div>
                 );
@@ -1314,24 +1371,24 @@ export default function MetaPage() {
 
             {/* ML-Discovered Cores (table) */}
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mt-6 mb-3 flex items-center gap-2">
-              <Brain className="w-4 h-4 text-emerald-500" /> ML-Discovered Cores <span className="text-xs font-normal text-muted-foreground">(from 2M battles)</span>
+              <Brain className="w-4 h-4 text-emerald-500" /> {t('meta.mlCores')} <span className="text-xs font-normal text-muted-foreground">({t('meta.from2mBattles')})</span>
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200">
+                  <tr className="border-b border-gray-200 dark:border-white/[0.06]">
                     <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">#</th>
-                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Core</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">{t('meta.core')}</th>
                     <th className="text-center py-2 px-3 text-xs text-muted-foreground font-medium">Pokémon</th>
-                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Win Rate</th>
-                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Games</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">{t('meta.winRate')}</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">{t('meta.games')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {ML_BEST_CORES.map((c, i) => (
-                    <tr key={c.pair} className="border-b border-gray-100 hover:bg-gray-50">
+                    <tr key={c.pair} className="border-b border-gray-100 dark:border-white/[0.06] hover:bg-gray-50 dark:hover:bg-white/[0.04]">
                       <td className="py-2 px-3"><span className={cn("px-2 py-0.5 text-[10px] font-bold rounded", i < 3 ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600")}>#{i + 1}</span></td>
-                      <td className="py-2 px-3 font-semibold text-sm">{c.pair}</td>
+                      <td className="py-2 px-3 font-semibold text-sm">{c.pair.split(' + ').map(n => tp(n)).join(' + ')}</td>
                       <td className="py-2 px-3">
                         <div className="flex items-center justify-center gap-1">
                           {c.pair.split(" + ").map(name => {
@@ -1355,15 +1412,14 @@ export default function MetaPage() {
       {activeTab === "matchups" && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
           <div className="glass rounded-2xl p-6 border border-gray-200/60">
-            <h2 className="text-lg font-bold mb-1">Archetype Matchup Matrix</h2>
+            <h2 className="text-lg font-bold mb-1">{t('meta.archetypeMatchupMatrix')}</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              How each archetype performs against the others. Win rates above 55% are highlighted green, below 45% red.
-              This data combines tournament results with ML simulation insights.
+              {t('meta.archetypeMatchupDesc')}
             </p>
 
             {/* Tournament Matchup Data (card grid) */}
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Swords className="w-4 h-4 text-cyan-500" /> Tournament Matchup Data
+              <Swords className="w-4 h-4 text-cyan-500" /> {t('meta.tournamentMatchupData')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
               {ARCHETYPE_MATCHUPS.sort((a, b) => Math.abs(b.winRate1 - 50) - Math.abs(a.winRate1 - 50)).map((m, i) => {
@@ -1372,7 +1428,7 @@ export default function MetaPage() {
                 const loser = dominant ? m.archetype2 : m.archetype1;
                 const wr = dominant ? m.winRate1 : 100 - m.winRate1;
                 return (
-                  <div key={i} className="p-3 rounded-xl bg-gray-50 border border-gray-200">
+                  <div key={i} className="p-3 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/10">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-bold text-green-600 truncate">{winner}</span>
                       <ArrowRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
@@ -1382,7 +1438,7 @@ export default function MetaPage() {
                       <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden"><div className={cn("h-full rounded-full", wr >= 55 ? "bg-green-400" : "bg-emerald-400")} style={{ width: `${wr}%` }} /></div>
                       <span className={cn("text-sm font-bold", wr >= 55 ? "text-green-600" : "text-gray-700")}>{wr.toFixed(1)}%</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">{m.sampleSize} games · {wr >= 55 ? `${winner} favored` : "Even"}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{m.sampleSize} {t('meta.games')} · {wr >= 55 ? t('meta.favored', { name: winner }) : t('meta.even')}</p>
                   </div>
                 );
               })}
@@ -1390,12 +1446,12 @@ export default function MetaPage() {
 
             {/* ML Archetype Rankings (table) */}
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mt-6 mb-3 flex items-center gap-2">
-              <Brain className="w-4 h-4 text-emerald-500" /> ML Archetype Rankings
+              <Brain className="w-4 h-4 text-emerald-500" /> {t('meta.mlArchetypeRankings')}
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200">
+                  <tr className="border-b border-gray-200 dark:border-white/[0.06]">
                     <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">#</th>
                     <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Archetype</th>
                     <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Win Rate</th>
@@ -1405,7 +1461,7 @@ export default function MetaPage() {
                 </thead>
                 <tbody>
                   {ML_ARCHETYPES.map((a, i) => (
-                    <tr key={a.name} className="border-b border-gray-100 hover:bg-gray-50">
+                    <tr key={a.name} className="border-b border-gray-100 dark:border-white/[0.06] hover:bg-gray-50 dark:hover:bg-white/[0.04]">
                       <td className="py-2 px-3"><span className={cn("px-2 py-0.5 text-[10px] font-bold rounded", i < 2 ? "bg-amber-100 text-amber-700" : i < 5 ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600")}>#{i + 1}</span></td>
                       <td className="py-2 px-3 font-semibold text-sm">{a.name}</td>
                       <td className={cn("py-2 px-3 text-right font-bold", a.wr >= 60 ? "text-green-600" : "text-gray-700")}>{a.wr}%</td>
@@ -1427,10 +1483,10 @@ export default function MetaPage() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
           <div className="glass rounded-2xl p-6 border border-gray-200/60">
             <h2 className="text-lg font-bold mb-1 flex items-center gap-2">
-              <Zap className="w-5 h-5 text-amber-500" /> Move Win Rate Analysis
+              <Zap className="w-5 h-5 text-amber-500" /> {t('meta.moveWinRate')}
             </h2>
             <p className="text-sm text-muted-foreground mb-4">
-              Move win rates from 2,000,000 ML simulated battles. Higher win rate means teams using this move won more often. Usage count shows total appearances across all battles.
+              {t('meta.moveWinRateDesc')}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {ML_BEST_MOVES.map((m, i) => (
@@ -1438,7 +1494,7 @@ export default function MetaPage() {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className={cn("w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold", i < 3 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600")}>#{i + 1}</span>
-                      <span className="text-sm font-bold">{m.name}</span>
+                      <span className="text-sm font-bold">{tm(m.name)}</span>
                     </div>
                     <span className={cn("text-lg font-bold", m.wr >= 65 ? "text-green-600" : m.wr >= 60 ? "text-emerald-600" : "text-gray-700")}>{m.wr}%</span>
                   </div>
@@ -1446,7 +1502,7 @@ export default function MetaPage() {
                     <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-400" style={{ width: `${m.wr}%` }} />
                     </div>
-                    <span className="text-xs text-muted-foreground">{m.uses.toLocaleString()} uses</span>
+                    <span className="text-xs text-muted-foreground">{m.uses.toLocaleString()} {t('meta.uses')}</span>
                   </div>
                 </div>
               ))}
@@ -1460,16 +1516,15 @@ export default function MetaPage() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
 
           {/* ── Hero Header ── */}
-          <div className="glass rounded-2xl p-6 border-2 border-cyan-300/60 bg-gradient-to-br from-cyan-50/60 via-white to-indigo-50/60 shadow-lg shadow-cyan-100/30">
+          <div className="glass rounded-2xl p-6 border-2 border-cyan-300/60 dark:border-cyan-500/20 bg-gradient-to-br from-cyan-50/60 via-white to-indigo-50/60 dark:from-cyan-950/20 dark:via-transparent dark:to-indigo-950/20 shadow-lg shadow-cyan-100/30 dark:shadow-none">
             <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
               <h2 className="text-xl font-extrabold flex items-center gap-2">
-                <Timer className="w-6 h-6 text-cyan-500" /> Speed Tiers
+                <Timer className="w-6 h-6 text-cyan-500" /> {t('meta.speedTiersHeader')}
               </h2>
-              <span className="px-3 py-1 text-[10px] font-bold uppercase rounded-full bg-cyan-100 text-cyan-700 border border-cyan-200">Level 50 · 31 IVs</span>
+              <span className="px-3 py-1 text-[10px] font-bold uppercase rounded-full bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-500/30">{t('meta.level50')}</span>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Complete speed tier chart for all {filteredSpeedEntries.length} Pokémon. Calculated at Level 50 with max IVs (31) and max SP investment (32) where applicable.
-              Mega Evolutions cannot hold items  -  Choice Scarf columns show N/A.
+              {t('meta.speedTiersDesc', { count: filteredSpeedEntries.length })}
             </p>
 
             {/* ── Quick Stats ── */}
@@ -1480,13 +1535,13 @@ export default function MetaPage() {
                 const slowest = speedEntries.filter(e => !e.isMega).sort((a, b) => a.baseSpeed - b.baseSpeed)[0];
                 const avgSpeed = Math.round(speedEntries.filter(e => !e.isMega).reduce((s, e) => s + e.baseSpeed, 0) / speedEntries.filter(e => !e.isMega).length);
                 return [
-                  { label: "Fastest Mega", value: fastest?.name ?? "-", stat: fastest?.baseSpeed ?? 0, color: "text-red-600" },
-                  { label: "Fastest Non-Mega", value: fastestNonMega?.name ?? "-", stat: fastestNonMega?.baseSpeed ?? 0, color: "text-amber-600" },
-                  { label: "Average Speed", value: `${avgSpeed} Base`, stat: avgSpeed, color: "text-blue-600" },
-                  { label: "Slowest", value: slowest?.name ?? "-", stat: slowest?.baseSpeed ?? 0, color: "text-indigo-600" },
+                  { label: t('meta.fastestMega'), value: fastest?.name ?? "-", stat: fastest?.baseSpeed ?? 0, color: "text-red-600" },
+                  { label: t('meta.fastestNonMega'), value: fastestNonMega?.name ?? "-", stat: fastestNonMega?.baseSpeed ?? 0, color: "text-amber-600" },
+                  { label: t('meta.averageSpeed'), value: `${avgSpeed} Base`, stat: avgSpeed, color: "text-blue-600" },
+                  { label: t('meta.slowest'), value: slowest?.name ?? "-", stat: slowest?.baseSpeed ?? 0, color: "text-indigo-600" },
                 ];
               })().map(s => (
-                <div key={s.label} className="p-3 rounded-xl bg-white/80 border border-gray-200/60 text-center">
+                <div key={s.label} className="p-3 rounded-xl bg-white/80 dark:bg-white/[0.05] border border-gray-200/60 dark:border-white/10 text-center">
                   <p className="text-[10px] font-semibold uppercase text-muted-foreground">{s.label}</p>
                   <p className={cn("text-lg font-extrabold", s.color)}>{s.stat}</p>
                   <p className="text-[10px] text-muted-foreground truncate">{s.value}</p>
@@ -1503,8 +1558,8 @@ export default function MetaPage() {
                   type="text"
                   value={speedSearch}
                   onChange={e => setSpeedSearch(e.target.value)}
-                  placeholder="Search Pokémon..."
-                  className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-transparent"
+                  placeholder={t('meta.searchPokemon')}
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/[0.05] focus:outline-none focus:ring-2 focus:ring-cyan-300 dark:focus:ring-cyan-500/40 focus:border-transparent"
                 />
               </div>
 
@@ -1512,32 +1567,32 @@ export default function MetaPage() {
               <select
                 value={speedTypeFilter}
                 onChange={e => setSpeedTypeFilter(e.target.value as PokemonType | "all")}
-                className="px-3 py-2 text-sm rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                className="px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/[0.05] focus:outline-none focus:ring-2 focus:ring-cyan-300 dark:focus:ring-cyan-500/40"
               >
-                <option value="all">All Types</option>
-                {(["normal","fire","water","electric","grass","ice","fighting","poison","ground","flying","psychic","bug","rock","ghost","dragon","dark","steel","fairy"] as PokemonType[]).map(t => (
-                  <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                <option value="all">{t('meta.allTypes')}</option>
+                {(["normal","fire","water","electric","grass","ice","fighting","poison","ground","flying","psychic","bug","rock","ghost","dragon","dark","steel","fairy"] as PokemonType[]).map(ty => (
+                  <option key={ty} value={ty}>{ty.charAt(0).toUpperCase() + ty.slice(1)}</option>
                 ))}
               </select>
 
               {/* Toggles */}
               <button
                 onClick={() => setShowMegas(!showMegas)}
-                className={cn("px-3 py-2 text-xs font-bold rounded-xl border transition-all", showMegas ? "bg-gradient-to-r from-amber-100 to-orange-100 border-amber-300 text-amber-700" : "bg-white border-gray-200 text-muted-foreground")}
+                className={cn("px-3 py-2 text-xs font-bold rounded-xl border transition-all", showMegas ? "bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-500/15 dark:to-orange-500/15 border-amber-300 dark:border-amber-500/30 text-amber-700 dark:text-amber-400" : "bg-white dark:bg-white/[0.05] border-gray-200 dark:border-white/10 text-muted-foreground")}
               >
-                {showMegas ? "✦ Megas On" : "Megas Off"}
+                {showMegas ? t('meta.megasOn') : t('meta.megasOff')}
               </button>
               <button
                 onClick={() => setTrickRoomMode(!trickRoomMode)}
-                className={cn("px-3 py-2 text-xs font-bold rounded-xl border transition-all", trickRoomMode ? "bg-gradient-to-r from-indigo-100 to-purple-100 border-indigo-300 text-indigo-700" : "bg-white border-gray-200 text-muted-foreground")}
+                className={cn("px-3 py-2 text-xs font-bold rounded-xl border transition-all", trickRoomMode ? "bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-500/15 dark:to-purple-500/15 border-indigo-300 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-400" : "bg-white dark:bg-white/[0.05] border-gray-200 dark:border-white/10 text-muted-foreground")}
               >
-                {trickRoomMode ? "🔮 Trick Room" : "Normal Order"}
+                {trickRoomMode ? t('meta.trickRoomToggle') : t('meta.normalOrder')}
               </button>
               <button
                 onClick={() => setSpeedTailwind(!speedTailwind)}
-                className={cn("px-3 py-2 text-xs font-bold rounded-xl border transition-all", speedTailwind ? "bg-gradient-to-r from-sky-100 to-blue-100 border-sky-300 text-sky-700" : "bg-white border-gray-200 text-muted-foreground")}
+                className={cn("px-3 py-2 text-xs font-bold rounded-xl border transition-all", speedTailwind ? "bg-gradient-to-r from-sky-100 to-blue-100 dark:from-sky-500/15 dark:to-blue-500/15 border-sky-300 dark:border-sky-500/30 text-sky-700 dark:text-sky-400" : "bg-white dark:bg-white/[0.05] border-gray-200 dark:border-white/10 text-muted-foreground")}
               >
-                {speedTailwind ? "💨 Tailwind" : "No Tailwind"}
+                {speedTailwind ? t('meta.tailwind') : t('meta.noTailwind')}
               </button>
             </div>
           </div>
@@ -1561,9 +1616,9 @@ export default function MetaPage() {
                 </div>
 
                 {/* Table */}
-                <div className="border border-gray-200 rounded-b-2xl overflow-hidden">
+                <div className="border border-gray-200 dark:border-white/10 rounded-b-2xl overflow-hidden">
                   {/* Table Header */}
-                  <div className="hidden lg:grid grid-cols-[3rem_3rem_minmax(140px,1fr)_5rem_4.5rem_5.5rem_5.5rem_5rem_5rem_5.5rem_5.5rem] gap-0 px-4 py-2 bg-gray-50/80 border-b border-gray-200 text-[10px] font-bold uppercase text-muted-foreground">
+                  <div className="hidden lg:grid grid-cols-[3rem_3rem_minmax(140px,1fr)_5rem_4.5rem_5.5rem_5.5rem_5rem_5rem_5.5rem_5.5rem] gap-0 px-4 py-2 bg-gray-50/80 dark:bg-white/[0.04] border-b border-gray-200 dark:border-white/10 text-[10px] font-bold uppercase text-muted-foreground">
                     <span className="text-center">#</span>
                     <span></span>
                     <span>Pokémon</span>
@@ -1595,8 +1650,8 @@ export default function MetaPage() {
                         {/* Desktop Row */}
                         <div
                           className={cn(
-                            "hidden lg:grid grid-cols-[3rem_3rem_minmax(140px,1fr)_5rem_4.5rem_5.5rem_5.5rem_5rem_5rem_5.5rem_5.5rem] gap-0 px-4 py-2 items-center border-b border-gray-100 hover:bg-gray-50/80 transition-colors cursor-pointer group",
-                            entry.isMega && "bg-amber-50/30",
+                            "hidden lg:grid grid-cols-[3rem_3rem_minmax(140px,1fr)_5rem_4.5rem_5.5rem_5.5rem_5rem_5rem_5.5rem_5.5rem] gap-0 px-4 py-2 items-center border-b border-gray-100 dark:border-white/[0.06] hover:bg-gray-50 dark:hover:bg-white/[0.04]/80 transition-colors cursor-pointer group",
+                            entry.isMega && "bg-amber-50/30 dark:bg-amber-500/[0.06]",
                           )}
                           onClick={() => setModal({ kind: "pokemon", name: entry.name })}
                         >
@@ -1616,13 +1671,13 @@ export default function MetaPage() {
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
                                 <span className={cn("text-sm font-bold truncate group-hover:text-cyan-600 transition-colors", entry.isMega && "text-amber-700")}>
-                                  {entry.name}
+                                  {tp(entry.name)}
                                 </span>
                                 {entry.isMega && <span className="shrink-0 px-1.5 py-0.5 text-[8px] font-bold rounded bg-gradient-to-r from-amber-200 to-orange-200 text-amber-800">MEGA</span>}
                               </div>
                               <div className="flex gap-1 mt-0.5">
-                                {entry.types.map(t => (
-                                  <span key={t} className="px-1.5 py-0 text-[8px] font-bold uppercase rounded text-white leading-4" style={{ backgroundColor: TYPE_COLORS[t] }}>{t}</span>
+                                {entry.types.map(ty => (
+                                  <span key={ty} className="px-1.5 py-0 text-[8px] font-bold uppercase rounded text-white leading-4" style={{ backgroundColor: TYPE_COLORS[ty] }}>{tty(ty)}</span>
                                 ))}
                               </div>
                             </div>
@@ -1654,23 +1709,23 @@ export default function MetaPage() {
 
                           {/* +Nature Max SP */}
                           <div className="relative">
-                            <div className="h-5 bg-gray-100 rounded-md overflow-hidden">
+                            <div className="h-5 bg-gray-100 dark:bg-white/[0.08] rounded-md overflow-hidden">
                               <div className="h-full rounded-md bg-gradient-to-r from-green-400 to-emerald-400 opacity-70" style={{ width: `${Math.min(100, (displayMaxPos / maxBarRef) * 100)}%` }} />
                             </div>
-                            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-green-800 tabular-nums">{displayMaxPos}</span>
+                            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-green-800 dark:text-green-300 tabular-nums">{displayMaxPos}</span>
                           </div>
 
                           {/* Neutral Max SP */}
                           <div className="relative">
-                            <div className="h-5 bg-gray-100 rounded-md overflow-hidden">
+                            <div className="h-5 bg-gray-100 dark:bg-white/[0.08] rounded-md overflow-hidden">
                               <div className="h-full rounded-md bg-gradient-to-r from-cyan-400 to-teal-400 opacity-60" style={{ width: `${Math.min(100, (displayMaxNeu / maxBarRef) * 100)}%` }} />
                             </div>
-                            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-cyan-800 tabular-nums">{displayMaxNeu}</span>
+                            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-cyan-800 dark:text-cyan-300 tabular-nums">{displayMaxNeu}</span>
                           </div>
 
                           {/* Uninvested */}
                           <div className="relative">
-                            <div className="h-5 bg-gray-100 rounded-md overflow-hidden">
+                            <div className="h-5 bg-gray-100 dark:bg-white/[0.08] rounded-md overflow-hidden">
                               <div className="h-full rounded-md bg-gray-300 opacity-50" style={{ width: `${Math.min(100, (displayUninv / maxBarRef) * 100)}%` }} />
                             </div>
                             <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-gray-600 tabular-nums">{displayUninv}</span>
@@ -1678,7 +1733,7 @@ export default function MetaPage() {
 
                           {/* -Nature */}
                           <div className="relative">
-                            <div className="h-5 bg-gray-100 rounded-md overflow-hidden">
+                            <div className="h-5 bg-gray-100 dark:bg-white/[0.08] rounded-md overflow-hidden">
                               <div className="h-full rounded-md bg-gray-200 opacity-50" style={{ width: `${Math.min(100, (displayMinNeg / maxBarRef) * 100)}%` }} />
                             </div>
                             <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-gray-500 tabular-nums">{displayMinNeg}</span>
@@ -1688,10 +1743,10 @@ export default function MetaPage() {
                           <div className="relative">
                             {displayScarfPos != null ? (
                               <>
-                                <div className="h-5 bg-gray-100 rounded-md overflow-hidden">
+                                <div className="h-5 bg-gray-100 dark:bg-white/[0.08] rounded-md overflow-hidden">
                                   <div className="h-full rounded-md bg-gradient-to-r from-amber-400 to-orange-400 opacity-60" style={{ width: `${Math.min(100, (displayScarfPos / (maxBarRef * 1.5)) * 100)}%` }} />
                                 </div>
-                                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-amber-800 tabular-nums">{displayScarfPos}</span>
+                                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-amber-800 dark:text-amber-300 tabular-nums">{displayScarfPos}</span>
                               </>
                             ) : (
                               <div className="h-5 flex items-center justify-center text-[10px] font-bold text-gray-300">N/A</div>
@@ -1702,10 +1757,10 @@ export default function MetaPage() {
                           <div className="relative">
                             {displayScarfNeu != null ? (
                               <>
-                                <div className="h-5 bg-gray-100 rounded-md overflow-hidden">
+                                <div className="h-5 bg-gray-100 dark:bg-white/[0.08] rounded-md overflow-hidden">
                                   <div className="h-full rounded-md bg-gradient-to-r from-amber-300 to-yellow-400 opacity-50" style={{ width: `${Math.min(100, (displayScarfNeu / (maxBarRef * 1.5)) * 100)}%` }} />
                                 </div>
-                                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-amber-700 tabular-nums">{displayScarfNeu}</span>
+                                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-amber-700 dark:text-amber-300 tabular-nums">{displayScarfNeu}</span>
                               </>
                             ) : (
                               <div className="h-5 flex items-center justify-center text-[10px] font-bold text-gray-300">N/A</div>
@@ -1717,7 +1772,7 @@ export default function MetaPage() {
                         <div
                           className={cn(
                             "lg:hidden px-4 py-3 border-b border-gray-100 cursor-pointer",
-                            entry.isMega && "bg-amber-50/30",
+                            entry.isMega && "bg-amber-50/30 dark:bg-amber-500/[0.06]",
                           )}
                           onClick={() => setSpeedExpandedId(isExpanded ? null : entry.key)}
                         >
@@ -1728,7 +1783,7 @@ export default function MetaPage() {
                             <Image src={entry.sprite} alt={entry.name} width={36} height={36} className="drop-shadow-sm shrink-0" unoptimized />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5">
-                                <span className={cn("text-sm font-bold truncate", entry.isMega && "text-amber-700")}>{entry.name}</span>
+                                <span className={cn("text-sm font-bold truncate", entry.isMega && "text-amber-700")}>{tp(entry.name)}</span>
                                 {entry.isMega && <span className="shrink-0 px-1 py-0 text-[7px] font-bold rounded bg-amber-200 text-amber-800">M</span>}
                                 {entry.tier !== "-" && <span className={cn("shrink-0 px-1.5 py-0 text-[9px] font-bold rounded",
                                   entry.tier === "S" ? "bg-amber-100 text-amber-700" :
@@ -1737,8 +1792,8 @@ export default function MetaPage() {
                                 )}>{entry.tier}</span>}
                               </div>
                               <div className="flex gap-1 mt-0.5">
-                                {entry.types.map(t => (
-                                  <span key={t} className="px-1 py-0 text-[7px] font-bold uppercase rounded text-white leading-3" style={{ backgroundColor: TYPE_COLORS[t] }}>{t}</span>
+                                {entry.types.map(ty => (
+                                  <span key={ty} className="px-1 py-0 text-[7px] font-bold uppercase rounded text-white leading-3" style={{ backgroundColor: TYPE_COLORS[ty] }}>{ty}</span>
                                 ))}
                               </div>
                             </div>
@@ -1770,7 +1825,7 @@ export default function MetaPage() {
                                 <div key={row.label} className="flex items-center gap-2">
                                   <span className="text-[10px] text-muted-foreground w-24 shrink-0">{row.label}</span>
                                   <div className="flex-1 relative h-5">
-                                    <div className="absolute inset-0 bg-gray-100 rounded-md overflow-hidden">
+                                    <div className="absolute inset-0 bg-gray-100 dark:bg-white/[0.08] rounded-md overflow-hidden">
                                       <div className={cn("h-full rounded-md bg-gradient-to-r opacity-60", row.color)} style={{ width: `${Math.min(100, (row.value / maxBarRef) * 100)}%` }} />
                                     </div>
                                     <span className={cn("absolute inset-0 flex items-center justify-center text-[10px] font-bold tabular-nums", row.textColor)}>{row.value}</span>
@@ -1805,32 +1860,32 @@ export default function MetaPage() {
                 {
                   title: "Speed-Boosting Natures",
                   desc: "Timid (−Atk), Hasty (−Def), Jolly (−SpA), Naive (−SpD) all grant +10% Speed. Pick based on which attacking stat your Pokémon doesn't use.",
-                  icon: "⚡", color: "from-green-100 to-emerald-100", border: "border-green-200",
+                  icon: "⚡", color: "from-green-100 to-emerald-100 dark:from-green-500/15 dark:to-emerald-500/15", border: "border-green-200 dark:border-green-500/20",
                 },
                 {
                   title: "Choice Scarf",
                   desc: "Multiplies Speed by 1.5× but locks the holder into one move. Mega Evolutions cannot hold items, so they can never use Scarf.",
-                  icon: "🧣", color: "from-amber-100 to-orange-100", border: "border-amber-200",
+                  icon: "🧣", color: "from-amber-100 to-orange-100 dark:from-amber-500/15 dark:to-orange-500/15", border: "border-amber-200 dark:border-amber-500/20",
                 },
                 {
                   title: "Tailwind",
                   desc: "Doubles the Speed of your entire side for 4 turns. Stacks with natures and items. Toggle it on above to see Tailwind-boosted values.",
-                  icon: "💨", color: "from-sky-100 to-blue-100", border: "border-sky-200",
+                  icon: "💨", color: "from-sky-100 to-blue-100 dark:from-sky-500/15 dark:to-blue-500/15", border: "border-sky-200 dark:border-sky-500/20",
                 },
                 {
                   title: "Trick Room",
                   desc: "Reverses turn order for 5 turns  -  slower Pokémon move first. Use Trick Room mode above to sort by who benefits most.",
-                  icon: "🔮", color: "from-indigo-100 to-purple-100", border: "border-indigo-200",
+                  icon: "🔮", color: "from-indigo-100 to-purple-100 dark:from-indigo-500/15 dark:to-purple-500/15", border: "border-indigo-200 dark:border-indigo-500/20",
                 },
                 {
                   title: "Weather Abilities",
                   desc: "Swift Swim (Rain), Chlorophyll (Sun), Sand Rush (Sand), and Slush Rush (Hail) double Speed in their respective weather.",
-                  icon: "🌤", color: "from-teal-100 to-cyan-100", border: "border-teal-200",
+                  icon: "🌤", color: "from-teal-100 to-cyan-100 dark:from-teal-500/15 dark:to-cyan-500/15", border: "border-teal-200 dark:border-teal-500/20",
                 },
                 {
                   title: "Speed Ties",
                   desc: "If two Pokémon have identical Speed, the outcome is a random coin flip. Running a +Speed nature proactively avoids ties in key matchups.",
-                  icon: "🎲", color: "from-rose-100 to-pink-100", border: "border-rose-200",
+                  icon: "🎲", color: "from-rose-100 to-pink-100 dark:from-rose-500/15 dark:to-pink-500/15", border: "border-rose-200 dark:border-rose-500/20",
                 },
               ].map(guide => (
                 <div key={guide.title} className={cn("p-4 rounded-xl bg-gradient-to-br border", guide.color, guide.border)}>
@@ -1844,8 +1899,8 @@ export default function MetaPage() {
             </div>
 
             {/* Column Legend */}
-            <div className="mt-5 pt-4 border-t border-gray-200">
-              <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Column Reference</h4>
+            <div className="mt-5 pt-4 border-t border-gray-200 dark:border-white/10">
+              <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">{t('meta.columnReference')}</h4>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-[10px]">
                 <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-gray-500" /><span><strong>Base</strong>  -  Raw base stat</span></div>
                 <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-gradient-to-r from-green-400 to-emerald-400" /><span><strong>+Nat</strong>  -  +Nature, 32 SP</span></div>
@@ -1873,7 +1928,7 @@ export default function MetaPage() {
             {/* ── POKEMON MODAL ── */}
             {modal.kind === "pokemon" && (() => {
               const pokemon = getPokemonByName(modal.name);
-              if (!pokemon) return <div className="p-8 text-center text-muted-foreground">Pokémon not found</div>;
+              if (!pokemon) return <div className="p-8 text-center text-muted-foreground">{t('meta.pokemonNotFound')}</div>;
               const isMega = modal.name.startsWith("Mega ");
               const megaSprite = getSpriteForName(modal.name);
               const megaTypes = getTypesForName(modal.name);
@@ -1897,10 +1952,10 @@ export default function MetaPage() {
                   <div className="flex items-center gap-5">
                     <Image src={megaSprite ?? pokemon.officialArt} alt={displayName} width={120} height={120} className="drop-shadow-xl" unoptimized />
                     <div>
-                      <h2 className="text-2xl font-extrabold">{displayName}</h2>
-                      <div className="flex gap-1.5 mt-1">{(megaTypes ?? pokemon.types).map(t => <span key={t} className="px-2.5 py-1 text-[10px] font-bold uppercase rounded-lg text-white" style={{ backgroundColor: TYPE_COLORS[t as PokemonType] }}>{t}</span>)}</div>
+                      <h2 className="text-2xl font-extrabold">{tp(displayName)}</h2>
+                      <div className="flex gap-1.5 mt-1">{(megaTypes ?? pokemon.types).map(ty => <span key={ty} className="px-2.5 py-1 text-[10px] font-bold uppercase rounded-lg text-white" style={{ backgroundColor: TYPE_COLORS[ty as PokemonType] }}>{tty(ty)}</span>)}</div>
                       <div className="flex items-center gap-3 mt-2">
-                        {tier !== "-" && <span className={cn("px-2.5 py-1 text-xs font-bold rounded-lg", tier === "S" ? "bg-amber-100 text-amber-700" : tier === "A" ? "bg-blue-100 text-blue-700" : tier === "B" ? "bg-gray-100 text-gray-700" : tier === "C" ? "bg-gray-50 text-gray-500" : "bg-red-50 text-red-400")}>{tier}-Tier</span>}
+                        {tier !== "-" && <span className={cn("px-2.5 py-1 text-xs font-bold rounded-lg", tier === "S" ? "bg-amber-100 text-amber-700" : tier === "A" ? "bg-blue-100 text-blue-700" : tier === "B" ? "bg-gray-100 text-gray-700" : tier === "C" ? "bg-gray-50 text-gray-500" : "bg-red-50 text-red-400")}>{tier}-{t('meta.tier')}</span>}
                         {mlData && <span className="text-sm text-muted-foreground">ML #{ML_POKEMON_RANKINGS.indexOf(mlData) + 1} · ELO {mlData.elo.toLocaleString()}</span>}
                       </div>
                     </div>
@@ -1910,7 +1965,7 @@ export default function MetaPage() {
                   <div className="grid grid-cols-6 gap-4">
                     {(["hp", "attack", "defense", "spAtk", "spDef", "speed"] as const).map(stat => {
                       const v = displayStats[stat];
-                      const label = { hp: "HP", attack: "Atk", defense: "Def", spAtk: "SpA", spDef: "SpD", speed: "Spe" }[stat];
+                      const label = ts(stat);
                       return (
                         <div key={stat} className="text-center">
                           <p className="text-xs text-muted-foreground">{label}</p>
@@ -1924,24 +1979,24 @@ export default function MetaPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* ML + Tournament stats */}
                     <div className="space-y-3">
-                      <h4 className="text-sm font-bold uppercase text-muted-foreground">Performance</h4>
+                      <h4 className="text-sm font-bold uppercase text-muted-foreground">{t('meta.performance')}</h4>
                       {mlData && <>
-                        <div className="flex justify-between p-2.5 bg-gray-50 rounded-xl"><span className="text-xs text-muted-foreground">ML Win Rate</span><span className={cn("text-sm font-bold", mlData.wr >= 55 ? "text-green-600" : "text-foreground")}>{mlData.wr}%</span></div>
-                        <div className="flex justify-between p-2.5 bg-gray-50 rounded-xl"><span className="text-xs text-muted-foreground">ML Games</span><span className="text-sm font-bold">{mlData.games.toLocaleString()}</span></div>
+                        <div className="flex justify-between p-2.5 bg-gray-50 rounded-xl"><span className="text-xs text-muted-foreground">{t('meta.mlWinRate')}</span><span className={cn("text-sm font-bold", mlData.wr >= 55 ? "text-green-600" : "text-foreground")}>{mlData.wr}%</span></div>
+                        <div className="flex justify-between p-2.5 bg-gray-50 rounded-xl"><span className="text-xs text-muted-foreground">{t('meta.mlGames')}</span><span className="text-sm font-bold">{mlData.games.toLocaleString()}</span></div>
                       </>}
                       {usageData && <>
-                        <div className="flex justify-between p-2.5 bg-gray-50 rounded-xl"><span className="text-xs text-muted-foreground">Tournament Usage</span><span className="text-sm font-bold">{usageData.usageRate}%</span></div>
-                        <div className="flex justify-between p-2.5 bg-gray-50 rounded-xl"><span className="text-xs text-muted-foreground">Tournament WR</span><span className="text-sm font-bold">{usageData.winRate}%</span></div>
-                        <div className="flex justify-between p-2.5 bg-gray-50 rounded-xl"><span className="text-xs text-muted-foreground">Top Cut</span><span className="text-sm font-bold">{usageData.topCutRate}%</span></div>
-                        <div className="flex justify-between p-2.5 bg-gray-50 rounded-xl"><span className="text-xs text-muted-foreground">Lead Rate</span><span className="text-sm font-bold">{usageData.leadRate}%</span></div>
-                        <div className="flex justify-between p-2.5 bg-gray-50 rounded-xl"><span className="text-xs text-muted-foreground">Bring Rate</span><span className="text-sm font-bold">{usageData.bringRate}%</span></div>
+                        <div className="flex justify-between p-2.5 bg-gray-50 rounded-xl"><span className="text-xs text-muted-foreground">{t('meta.tournamentUsage')}</span><span className="text-sm font-bold">{usageData.usageRate}%</span></div>
+                        <div className="flex justify-between p-2.5 bg-gray-50 rounded-xl"><span className="text-xs text-muted-foreground">{t('meta.tournamentWR')}</span><span className="text-sm font-bold">{usageData.winRate}%</span></div>
+                        <div className="flex justify-between p-2.5 bg-gray-50 rounded-xl"><span className="text-xs text-muted-foreground">{t('meta.topCut')}</span><span className="text-sm font-bold">{usageData.topCutRate}%</span></div>
+                        <div className="flex justify-between p-2.5 bg-gray-50 rounded-xl"><span className="text-xs text-muted-foreground">{t('meta.leadRate')}</span><span className="text-sm font-bold">{usageData.leadRate}%</span></div>
+                        <div className="flex justify-between p-2.5 bg-gray-50 rounded-xl"><span className="text-xs text-muted-foreground">{t('meta.bringRate')}</span><span className="text-sm font-bold">{usageData.bringRate}%</span></div>
                       </>}
-                      {!mlData && !usageData && <p className="text-xs text-muted-foreground">No competitive data available</p>}
+                      {!mlData && !usageData && <p className="text-xs text-muted-foreground">{t('meta.noCompetitiveData')}</p>}
                     </div>
 
                     {/* Core partners */}
                     <div className="space-y-3">
-                      <h4 className="text-sm font-bold uppercase text-muted-foreground">Best Partners ({corePairs.length})</h4>
+                      <h4 className="text-sm font-bold uppercase text-muted-foreground">{t('meta.bestPartners', { count: corePairs.length })}</h4>
                       {corePairs.sort((a, b) => b.winRate - a.winRate).slice(0, 6).map(cp => {
                         const partnerId = cp.pokemon1 === pokemon.id ? cp.pokemon2 : cp.pokemon1;
                         const partner = POKEMON_SEED.find(p => p.id === partnerId);
@@ -1949,7 +2004,7 @@ export default function MetaPage() {
                           <div key={cp.name} className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setModal({ kind: "core", pair: cp.name })}>
                             {partner && <Image src={partner.sprite} alt={partner.name} width={28} height={28} className="rounded" unoptimized />}
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold truncate">{cp.name}</p>
+                              <p className="text-xs font-semibold truncate">{cp.name.split(' + ').map(n => tp(n)).join(' + ')}</p>
                               <p className="text-[10px] text-muted-foreground">{cp.synergy}</p>
                             </div>
                             <span className={cn("text-xs font-bold", cp.winRate >= 55 ? "text-green-600" : "text-gray-700")}>{cp.winRate}%</span>
@@ -1960,22 +2015,22 @@ export default function MetaPage() {
 
                     {/* Abilities + key moves */}
                     <div className="space-y-3">
-                      <h4 className="text-sm font-bold uppercase text-muted-foreground">Abilities</h4>
+                      <h4 className="text-sm font-bold uppercase text-muted-foreground">{t('meta.abilities')}</h4>
                       {pokemon.abilities.map(a => (
                         <div key={a.name} className="p-2.5 bg-gray-50 rounded-xl">
-                          <div className="flex items-center gap-2"><span className="text-xs font-bold">{a.name}</span>{a.isHidden && <span className="text-[9px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded font-medium">Hidden</span>}{(a as any).isChampions && <span className="text-[9px] px-1.5 py-0.5 bg-violet-100 text-violet-700 rounded font-medium" title="New ability introduced in Pokémon Champions">Champions</span>}</div>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">{a.description}</p>
+                          <div className="flex items-center gap-2"><span className="text-xs font-bold">{ta(a.name)}</span>{a.isHidden && <span className="text-[9px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded font-medium">{t('meta.hidden')}</span>}{(a as any).isChampions && <span className="text-[9px] px-1.5 py-0.5 bg-violet-100 text-violet-700 rounded font-medium" title="New ability introduced in Pokémon Champions">{t('meta.champions')}</span>}</div>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{tad(a.name, a.description)}</p>
                         </div>
                       ))}
-                      <h4 className="text-sm font-bold uppercase text-muted-foreground mt-4">Top Moves</h4>
+                      <h4 className="text-sm font-bold uppercase text-muted-foreground mt-4">{t('meta.topMoves')}</h4>
                       <div className="grid grid-cols-2 gap-1.5">
                         {pokemon.moves.filter(m => m.category !== "status").sort((a, b) => (b.power || 0) - (a.power || 0)).slice(0, 8).map(m => (
                           <div key={m.name} className="p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setModal({ kind: "move", name: m.name })}>
                             <div className="flex items-center gap-1.5">
                               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: TYPE_COLORS[m.type as PokemonType] }} />
-                              <span className="text-[10px] font-semibold truncate">{m.name}</span>
+                              <span className="text-[10px] font-semibold truncate">{tm(m.name)}</span>
                             </div>
-                            <p className="text-[9px] text-muted-foreground">{m.power || "-"} BP · {m.category}</p>
+                            <p className="text-[9px] text-muted-foreground">{m.power || "-"} BP · {t('common.categories.' + m.category.toLowerCase())}</p>
                           </div>
                         ))}
                       </div>
@@ -1991,7 +2046,7 @@ export default function MetaPage() {
                     return (
                       <div>
                         <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3 flex items-center gap-2">
-                          <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Recommended Competitive Sets
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500" /> {t('meta.recommendedSets')}
                         </h4>
                         {setsForPokemon && (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
@@ -2002,9 +2057,9 @@ export default function MetaPage() {
                                   <span className="text-xs font-bold">{set.name}</span>
                                 </div>
                                 <div className="grid grid-cols-2 gap-y-1 text-xs mb-2">
-                                  <div className="flex justify-between pr-2"><span className="text-muted-foreground">Nature</span><span className="font-semibold">{set.nature}</span></div>
-                                  <div className="flex justify-between"><span className="text-muted-foreground">Ability</span><span className="font-semibold text-right truncate ml-1">{set.ability}</span></div>
-                                  <div className="flex justify-between pr-2"><span className="text-muted-foreground">Item</span><span className="font-semibold">{set.item}</span></div>
+                                  <div className="flex justify-between pr-2"><span className="text-muted-foreground">{t('meta.nature')}</span><span className="font-semibold">{tn(set.nature)}</span></div>
+                                  <div className="flex justify-between"><span className="text-muted-foreground">{t('meta.ability')}</span><span className="font-semibold text-right truncate ml-1">{ta(set.ability)}</span></div>
+                                  <div className="flex justify-between pr-2"><span className="text-muted-foreground">{t('meta.item')}</span><span className="font-semibold">{ti(set.item)}</span></div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-1 mb-2">
                                   {set.moves.map(mv => {
@@ -2012,7 +2067,7 @@ export default function MetaPage() {
                                     return (
                                       <div key={mv} className="flex items-center gap-1 p-1 bg-white/70 rounded text-[10px] font-medium cursor-pointer hover:bg-white transition-colors" onClick={(e) => { e.stopPropagation(); setModal({ kind: "move", name: mv }); }}>
                                         {moveInfo && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: TYPE_COLORS[moveInfo.type as PokemonType] }} />}
-                                        <span className="truncate">{mv}</span>
+                                        <span className="truncate">{tm(mv)}</span>
                                       </div>
                                     );
                                   })}
@@ -2020,7 +2075,7 @@ export default function MetaPage() {
                                 <div className="grid grid-cols-6 gap-0.5">
                                   {(["hp", "attack", "defense", "spAtk", "spDef", "speed"] as const).map(stat => (
                                     <div key={stat} className="text-center">
-                                      <p className="text-[7px] text-muted-foreground">{{ hp: "HP", attack: "Atk", defense: "Def", spAtk: "SpA", spDef: "SpD", speed: "Spe" }[stat]}</p>
+                                      <p className="text-[7px] text-muted-foreground">{ts(stat)}</p>
                                       <p className={cn("text-[10px] font-bold", set.sp[stat] >= 20 ? "text-emerald-600" : set.sp[stat] > 0 ? "text-gray-700" : "text-gray-300")}>{set.sp[stat]}</p>
                                     </div>
                                   ))}
@@ -2031,13 +2086,13 @@ export default function MetaPage() {
                         )}
                         {simData?.bestSets && simData.bestSets.length > 0 && (
                           <div className="space-y-1.5">
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">ML Best Performing Sets (from {simData.appearances.toLocaleString()} battles)</p>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('meta.mlBestSets').replace('{count}', simData.appearances.toLocaleString())}</p>
                             {simData.bestSets.slice(0, 3).map((s, i) => (
                               <div key={i} className="flex items-center gap-3 p-2.5 bg-emerald-50/50 rounded-xl border border-emerald-100">
                                 <span className="text-[9px] font-bold text-emerald-600 w-5">#{i + 1}</span>
                                 <span className="text-xs font-semibold flex-1">{s.set}</span>
                                 <span className={cn("text-xs font-bold", s.winRate >= 55 ? "text-green-600" : "text-gray-700")}>{s.winRate}%</span>
-                                <span className="text-[10px] text-muted-foreground">{s.games.toLocaleString()} games</span>
+                                <span className="text-[10px] text-muted-foreground">{s.games.toLocaleString()} {t('meta.games')}</span>
                               </div>
                             ))}
                           </div>
@@ -2049,16 +2104,16 @@ export default function MetaPage() {
                   {/* Tournament appearances */}
                   {teamAppearances.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3">Tournament Appearances ({teamAppearances.length} teams)</h4>
+                      <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3">{t('meta.tournamentAppearances', { count: teamAppearances.length })}</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {teamAppearances.sort((a, b) => b.year - a.year).slice(0, 6).map(t => (
-                          <div key={t.id} className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-xl">
-                            <span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", t.placement <= 1 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600")}>{t.placement === 1 ? "🥇" : `#${t.placement}`}</span>
+                        {teamAppearances.sort((a, b) => b.year - a.year).slice(0, 6).map(tm => (
+                          <div key={tm.id} className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-xl">
+                            <span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", tm.placement <= 1 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600")}>{tm.placement === 1 ? "🥇" : `#${tm.placement}`}</span>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold truncate">{t.tournament}</p>
-                              <p className="text-[10px] text-muted-foreground">{t.year} · {t.region}</p>
+                              <p className="text-xs font-semibold truncate">{tm.tournament}</p>
+                              <p className="text-[10px] text-muted-foreground">{tm.year} · {tm.region}</p>
                             </div>
-                            <span className="text-[9px] px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded capitalize">{t.archetype}</span>
+                            <span className="text-[9px] px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded capitalize">{tm.archetype}</span>
                           </div>
                         ))}
                       </div>
@@ -2068,15 +2123,15 @@ export default function MetaPage() {
                   {/* Prebuilt teams featuring this Pokémon */}
                   {prebuiltTeams.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3">Featured in Curated Teams</h4>
+                      <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3">{t('meta.featuredInCurated')}</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {prebuiltTeams.map(t => (
-                          <div key={t.id} className="p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setModal({ kind: "prebuilt", id: t.id })}>
+                        {prebuiltTeams.map(tm => (
+                          <div key={tm.id} className="p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setModal({ kind: "prebuilt", id: tm.id })}>
                             <div className="flex items-center gap-2 mb-1">
-                              <span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", t.tier === "S" ? "bg-amber-100 text-amber-700" : t.tier === "A" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600")}>{t.tier}</span>
-                              <span className="text-xs font-bold">{t.name}</span>
+                              <span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", tm.tier === "S" ? "bg-amber-100 text-amber-700" : tm.tier === "A" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600")}>{tm.tier}</span>
+                              <span className="text-xs font-bold">{tm.name}</span>
                             </div>
-                            <div className="flex gap-1">{t.pokemonIds.map(id => { const pm = POKEMON_SEED.find(pk => pk.id === id); return pm ? <Image key={id} src={pm.sprite} alt={pm.name} width={24} height={24} className="rounded" unoptimized /> : null; })}</div>
+                            <div className="flex gap-1">{tm.pokemonIds.map(id => { const pm = POKEMON_SEED.find(pk => pk.id === id); return pm ? <Image key={id} src={pm.sprite} alt={pm.name} width={24} height={24} className="rounded" unoptimized /> : null; })}</div>
                           </div>
                         ))}
                       </div>
@@ -2090,11 +2145,11 @@ export default function MetaPage() {
             {modal.kind === "archetype" && (() => {
               const arch = modal.name;
               const mlArch = ML_ARCHETYPES.find(a => a.name === arch);
-              const archTeams = _VALID_TOURNAMENT_TEAMS.filter(t => t.archetype.toLowerCase().includes(arch.toLowerCase()) || arch.toLowerCase().includes(t.archetype.toLowerCase()));
-              const prebuiltArch = _VALID_PREBUILT_TEAMS.filter(t => t.archetype.toLowerCase() === arch.toLowerCase() || t.name.toLowerCase().includes(arch.toLowerCase()));
+              const archTeams = _VALID_TOURNAMENT_TEAMS.filter(tm => tm.archetype.toLowerCase().includes(arch.toLowerCase()) || arch.toLowerCase().includes(tm.archetype.toLowerCase()));
+              const prebuiltArch = _VALID_PREBUILT_TEAMS.filter(tm => tm.archetype.toLowerCase() === arch.toLowerCase() || tm.name.toLowerCase().includes(arch.toLowerCase()));
               const matchups = ARCHETYPE_MATCHUPS.filter(m => m.archetype1.toLowerCase().includes(arch.toLowerCase()) || m.archetype2.toLowerCase().includes(arch.toLowerCase()));
               const metaPredictions = metaTeams.filter(m => m.archetype.toLowerCase().includes(arch.toLowerCase()) || arch.toLowerCase().includes(m.archetype.toLowerCase()));
-              const archPokemon = archTeams.flatMap(t => t.pokemonIds);
+              const archPokemon = archTeams.flatMap(tm => tm.pokemonIds);
               const pokemonFreq: Record<number, number> = {};
               archPokemon.forEach(id => { pokemonFreq[id] = (pokemonFreq[id] || 0) + 1; });
               const topPokemon = Object.entries(pokemonFreq).sort((a, b) => b[1] - a[1]).slice(0, 12);
@@ -2126,7 +2181,7 @@ export default function MetaPage() {
                       <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-center">
                         <p className="text-3xl font-extrabold text-amber-700">{archTeams.length}</p>
                         <p className="text-xs text-muted-foreground">Tournament Teams</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">{archTeams.filter(t => t.placement === 1).length} champions</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">{archTeams.filter(tm => tm.placement === 1).length} champions</p>
                       </div>
                     </div>
                   )}
@@ -2134,7 +2189,7 @@ export default function MetaPage() {
                   {/* Key Pokémon for this archetype */}
                   {topPokemon.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3">Key Pokémon</h4>
+                      <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3">{t('meta.keyPokemon')}</h4>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                         {topPokemon.map(([idStr, count]) => {
                           const pkm = POKEMON_SEED.find(p => p.id === Number(idStr));
@@ -2143,7 +2198,7 @@ export default function MetaPage() {
                             <div key={idStr} className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setModal({ kind: "pokemon", name: pkm.name })}>
                               <Image src={pkm.sprite} alt={pkm.name} width={32} height={32} className="rounded" unoptimized />
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold truncate">{pkm.name}</p>
+                                <p className="text-xs font-semibold truncate">{tp(pkm.name)}</p>
                                 <p className="text-[10px] text-muted-foreground">In {count}/{archTeams.length} teams</p>
                               </div>
                             </div>
@@ -2156,7 +2211,7 @@ export default function MetaPage() {
                   {/* Matchups */}
                   {matchups.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3">Matchup Chart</h4>
+                      <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3">{t('meta.matchupChart')}</h4>
                       <div className="space-y-2">
                         {matchups.sort((a, b) => {
                           const aWr = a.archetype1.toLowerCase().includes(arch.toLowerCase()) ? a.winRate1 : 100 - a.winRate1;
@@ -2184,16 +2239,16 @@ export default function MetaPage() {
                   {/* Example tournament teams */}
                   {archTeams.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3">Example Tournament Teams ({archTeams.length})</h4>
+                      <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3">{t('meta.exampleTournamentTeams', { count: archTeams.length })}</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {archTeams.sort((a, b) => a.placement - b.placement || b.year - a.year).slice(0, 6).map(t => {
-                          const tPkm = t.pokemonIds.map(id => POKEMON_SEED.find(p => p.id === id)).filter(Boolean);
+                        {archTeams.sort((a, b) => a.placement - b.placement || b.year - a.year).slice(0, 6).map(tm => {
+                          const tPkm = tm.pokemonIds.map(id => POKEMON_SEED.find(p => p.id === id)).filter(Boolean);
                           return (
-                            <div key={t.id} className="p-3 bg-gray-50 rounded-xl">
+                            <div key={tm.id} className="p-3 bg-gray-50 rounded-xl">
                               <div className="flex items-center gap-2 mb-1.5">
-                                <span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", t.placement === 1 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600")}>{t.placement === 1 ? "🥇" : `#${t.placement}`}</span>
-                                <span className="text-xs font-bold">{t.tournament}</span>
-                                <span className="text-[10px] text-muted-foreground">{t.year} · {t.region}</span>
+                                <span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", tm.placement === 1 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600")}>{tm.placement === 1 ? "🥇" : `#${tm.placement}`}</span>
+                                <span className="text-xs font-bold">{tm.tournament}</span>
+                                <span className="text-[10px] text-muted-foreground">{tm.year} · {tm.region}</span>
                               </div>
                               <div className="flex gap-1">{tPkm.map(p => p && <Image key={p.id} src={p.sprite} alt={p.name} width={26} height={26} className="rounded" unoptimized />)}</div>
                             </div>
@@ -2206,13 +2261,13 @@ export default function MetaPage() {
                   {/* Curated teams for this archetype */}
                   {prebuiltArch.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3">Curated Teams</h4>
+                      <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3">{t('meta.curatedTeams')}</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {prebuiltArch.map(t => (
-                          <div key={t.id} className="p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setModal({ kind: "prebuilt", id: t.id })}>
-                            <div className="flex items-center gap-2 mb-1"><span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", t.tier === "S" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700")}>{t.tier}</span><span className="text-xs font-bold">{t.name}</span></div>
-                            <p className="text-[10px] text-muted-foreground mb-1">{t.description}</p>
-                            <div className="flex gap-1">{t.pokemonIds.map(id => { const pm = POKEMON_SEED.find(pk => pk.id === id); return pm ? <Image key={id} src={pm.sprite} alt={pm.name} width={24} height={24} className="rounded" unoptimized /> : null; })}</div>
+                        {prebuiltArch.map(tm => (
+                          <div key={tm.id} className="p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setModal({ kind: "prebuilt", id: tm.id })}>
+                            <div className="flex items-center gap-2 mb-1"><span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", tm.tier === "S" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700")}>{tm.tier}</span><span className="text-xs font-bold">{tm.name}</span></div>
+                            <p className="text-[10px] text-muted-foreground mb-1">{tm.description}</p>
+                            <div className="flex gap-1">{tm.pokemonIds.map(id => { const pm = POKEMON_SEED.find(pk => pk.id === id); return pm ? <Image key={id} src={pm.sprite} alt={pm.name} width={24} height={24} className="rounded" unoptimized /> : null; })}</div>
                           </div>
                         ))}
                       </div>
@@ -2247,7 +2302,7 @@ export default function MetaPage() {
                   <div className="flex items-center gap-4">
                     {moveData && <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-lg font-bold" style={{ backgroundColor: TYPE_COLORS[moveData.type as PokemonType] }}><Zap className="w-7 h-7" /></div>}
                     <div>
-                      <h2 className="text-2xl font-extrabold">{moveName}</h2>
+                      <h2 className="text-2xl font-extrabold">{tm(moveName)}</h2>
                       {moveData && <div className="flex items-center gap-3 mt-1">
                         <span className="px-2.5 py-1 text-[10px] font-bold uppercase rounded-lg text-white" style={{ backgroundColor: TYPE_COLORS[moveData.type as PokemonType] }}>{moveData.type}</span>
                         <span className="text-xs text-muted-foreground capitalize">{moveData.category}</span>
@@ -2265,19 +2320,19 @@ export default function MetaPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="p-5 rounded-xl bg-amber-50 border border-amber-200 text-center">
                         <p className="text-4xl font-extrabold text-amber-700">{mlMove.wr}%</p>
-                        <p className="text-xs text-muted-foreground mt-1">Win Rate (2M Battles)</p>
+                        <p className="text-xs text-muted-foreground mt-1">{t('meta.winRate2m')}</p>
                         <div className="h-3 bg-amber-200 rounded-full mt-2 overflow-hidden"><div className="h-full rounded-full bg-amber-500" style={{ width: `${mlMove.wr}%` }} /></div>
                       </div>
                       <div className="p-5 rounded-xl bg-cyan-50 border border-cyan-200 text-center">
                         <p className="text-4xl font-extrabold text-cyan-700">{mlMove.uses.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground mt-1">Total Uses in Simulation</p>
+                        <p className="text-xs text-muted-foreground mt-1">{t('meta.totalUsesInSim')}</p>
                       </div>
                     </div>
                   )}
 
                   {/* Pokémon that learn this move */}
                   <div>
-                    <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3">Pokémon with this Move ({pokemonWithMove.length})</h4>
+                    <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3">{t('meta.pokemonWithMove', { count: pokemonWithMove.length })}</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                       {pokemonWithMove.sort((a, b) => {
                         const aUsage = _VALID_TOURNAMENT_USAGE.find(u => u.pokemonId === a.id);
@@ -2290,8 +2345,8 @@ export default function MetaPage() {
                           <div key={pkm.id} className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setModal({ kind: "pokemon", name: pkm.name })}>
                             <Image src={pkm.sprite} alt={pkm.name} width={32} height={32} className="rounded" unoptimized />
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold truncate">{pkm.name}</p>
-                              <div className="flex gap-0.5">{pkm.types.map(t => <span key={t} className="w-2 h-2 rounded-full" style={{ backgroundColor: TYPE_COLORS[t] }} />)}</div>
+                              <p className="text-xs font-semibold truncate">{tp(pkm.name)}</p>
+                              <div className="flex gap-0.5">{pkm.types.map(ty => <span key={ty} className="w-2 h-2 rounded-full" style={{ backgroundColor: TYPE_COLORS[ty] }} />)}</div>
                             </div>
                             <div className="text-right">
                               {usage && <p className="text-[10px] text-muted-foreground">{usage.usageRate}%</p>}
@@ -2314,7 +2369,7 @@ export default function MetaPage() {
               const names = pairName.split(" + ");
               const pokemon1 = POKEMON_SEED.find(p => p.name === names[0]);
               const pokemon2 = POKEMON_SEED.find(p => p.name === names[1]);
-              const teamsWithBoth = (pokemon1 && pokemon2) ? _VALID_CHAMPIONS_TEAMS.filter(t => t.pokemonIds.includes(pokemon1.id) && t.pokemonIds.includes(pokemon2.id)) : [];
+              const teamsWithBoth = (pokemon1 && pokemon2) ? _VALID_CHAMPIONS_TEAMS.filter(tm => tm.pokemonIds.includes(pokemon1.id) && tm.pokemonIds.includes(pokemon2.id)) : [];
               return (
                 <div className="p-6 space-y-6">
                   <div className="flex items-center gap-5">
@@ -2331,12 +2386,12 @@ export default function MetaPage() {
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {corePair && <>
-                      <div className="p-4 rounded-xl bg-green-50 border border-green-200 text-center"><p className="text-3xl font-extrabold text-green-700">{corePair.winRate}%</p><p className="text-xs text-muted-foreground">Tournament WR</p></div>
-                      <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-center"><p className="text-3xl font-extrabold text-blue-700">{corePair.usage}%</p><p className="text-xs text-muted-foreground">Usage Rate</p></div>
+                      <div className="p-4 rounded-xl bg-green-50 border border-green-200 text-center"><p className="text-3xl font-extrabold text-green-700">{corePair.winRate}%</p><p className="text-xs text-muted-foreground">{t('meta.tournamentWR')}</p></div>
+                      <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-center"><p className="text-3xl font-extrabold text-blue-700">{corePair.usage}%</p><p className="text-xs text-muted-foreground">{t('meta.usageRate')}</p></div>
                     </>}
                     {mlCore && <>
-                      <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-center"><p className="text-3xl font-extrabold text-emerald-700">{mlCore.wr}%</p><p className="text-xs text-muted-foreground">ML Win Rate</p></div>
-                      <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-center"><p className="text-3xl font-extrabold text-emerald-700">{mlCore.games.toLocaleString()}</p><p className="text-xs text-muted-foreground">ML Games</p></div>
+                      <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-center"><p className="text-3xl font-extrabold text-emerald-700">{mlCore.wr}%</p><p className="text-xs text-muted-foreground">{t('meta.mlWinRate')}</p></div>
+                      <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-center"><p className="text-3xl font-extrabold text-emerald-700">{mlCore.games.toLocaleString()}</p><p className="text-xs text-muted-foreground">{t('meta.mlGames')}</p></div>
                     </>}
                   </div>
 
@@ -2350,14 +2405,14 @@ export default function MetaPage() {
                           <div className="flex items-center gap-3 mb-3">
                             <Image src={pkm.sprite} alt={pkm.name} width={48} height={48} className="rounded-lg" unoptimized />
                             <div>
-                              <p className="text-sm font-bold">{pkm.name}</p>
-                              <div className="flex gap-1">{pkm.types.map(t => <span key={t} className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded text-white" style={{ backgroundColor: TYPE_COLORS[t] }}>{t}</span>)}</div>
+                              <p className="text-sm font-bold">{tp(pkm.name)}</p>
+                              <div className="flex gap-1">{pkm.types.map(ty => <span key={ty} className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded text-white" style={{ backgroundColor: TYPE_COLORS[ty] }}>{ty}</span>)}</div>
                             </div>
                           </div>
                           <div className="grid grid-cols-6 gap-1">
                             {(["hp", "attack", "defense", "spAtk", "spDef", "speed"] as const).map(stat => (
                               <div key={stat} className="text-center">
-                                <p className="text-[8px] text-muted-foreground">{{ hp: "HP", attack: "Atk", defense: "Def", spAtk: "SpA", spDef: "SpD", speed: "Spe" }[stat]}</p>
+                                <p className="text-[8px] text-muted-foreground">{ts(stat)}</p>
                                 <p className="text-xs font-bold">{pkm.baseStats[stat]}</p>
                               </div>
                             ))}
@@ -2371,12 +2426,12 @@ export default function MetaPage() {
                   {/* Teams using this core */}
                   {teamsWithBoth.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3">Tournament Teams with this Core ({teamsWithBoth.length})</h4>
+                      <h4 className="text-sm font-bold uppercase text-muted-foreground mb-3">{t('meta.tournamentTeamsWithCore').replace('{count}', String(teamsWithBoth.length))}</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {teamsWithBoth.sort((a, b) => a.placement - b.placement || b.players - a.players).slice(0, 6).map(t => (
-                          <div key={t.id} className="p-3 bg-gray-50 rounded-xl">
-                            <div className="flex items-center gap-2 mb-1"><span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", t.placement === 1 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600")}>{t.placement === 1 ? "🥇" : `#${t.placement}`}</span><span className="text-xs font-bold">{t.tournament}</span><span className="text-[10px] text-muted-foreground">{t.player}</span></div>
-                            <div className="flex gap-1">{t.pokemonIds.map(id => { const pm = POKEMON_SEED.find(pk => pk.id === id); return pm ? <Image key={id} src={pm.sprite} alt={pm.name} width={24} height={24} className="rounded" unoptimized /> : null; })}</div>
+                        {teamsWithBoth.sort((a, b) => a.placement - b.placement || b.players - a.players).slice(0, 6).map(tm => (
+                          <div key={tm.id} className="p-3 bg-gray-50 rounded-xl">
+                            <div className="flex items-center gap-2 mb-1"><span className={cn("px-1.5 py-0.5 text-[9px] font-bold rounded", tm.placement === 1 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600")}>{tm.placement === 1 ? "🥇" : `#${tm.placement}`}</span><span className="text-xs font-bold">{tm.tournament}</span><span className="text-[10px] text-muted-foreground">{tm.player}</span></div>
+                            <div className="flex gap-1">{tm.pokemonIds.map(id => { const pm = POKEMON_SEED.find(pk => pk.id === id); return pm ? <Image key={id} src={pm.sprite} alt={pm.name} width={24} height={24} className="rounded" unoptimized /> : null; })}</div>
                           </div>
                         ))}
                       </div>
@@ -2389,7 +2444,7 @@ export default function MetaPage() {
             {/* ── PREBUILT TEAM MODAL ── */}
             {modal.kind === "prebuilt" && (() => {
               const team = _VALID_PREBUILT_TEAMS.find(t => t.id === modal.id);
-              if (!team) return <div className="p-8 text-center text-muted-foreground">Team not found</div>;
+              if (!team) return <div className="p-8 text-center text-muted-foreground">{t('meta.teamNotFound')}</div>;
               const teamPokemon = team.pokemonIds.map((id, idx) => ({ pkm: POKEMON_SEED.find(p => p.id === id), set: team.sets[idx] }));
               return (
                 <div className="p-6 space-y-6">
@@ -2408,7 +2463,7 @@ export default function MetaPage() {
                     {teamPokemon.map(({ pkm }, i) => pkm && (
                       <div key={i} className="flex flex-col items-center cursor-pointer" onClick={() => setModal({ kind: "pokemon", name: pkm.name })}>
                         <Image src={pkm.officialArt} alt={pkm.name} width={72} height={72} className="drop-shadow-lg hover:scale-110 transition-transform" unoptimized />
-                        <span className="text-[10px] font-semibold mt-1">{pkm.name}</span>
+                        <span className="text-[10px] font-semibold mt-1">{tp(pkm.name)}</span>
                       </div>
                     ))}
                   </div>
@@ -2422,14 +2477,14 @@ export default function MetaPage() {
                           <div className="flex items-center gap-2 mb-3">
                             <Image src={pkm.sprite} alt={pkm.name} width={36} height={36} className="rounded" unoptimized />
                             <div>
-                              <p className="text-sm font-bold">{pkm.name}</p>
+                              <p className="text-sm font-bold">{tp(pkm.name)}</p>
                               <p className="text-[10px] text-muted-foreground">{set.name}</p>
                             </div>
                           </div>
                           <div className="space-y-1.5 text-xs">
-                            <div className="flex justify-between"><span className="text-muted-foreground">Ability</span><span className="font-semibold">{set.ability}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Item</span><span className="font-semibold">{set.item}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Nature</span><span className="font-semibold">{set.nature}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Ability</span><span className="font-semibold">{ta(set.ability)}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Item</span><span className="font-semibold">{ti(set.item)}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Nature</span><span className="font-semibold">{tn(set.nature)}</span></div>
                             <div className="border-t border-gray-200 pt-1.5 mt-1.5">
                               <p className="text-[10px] text-muted-foreground uppercase mb-1">Moves</p>
                               <div className="grid grid-cols-2 gap-1">
@@ -2438,7 +2493,7 @@ export default function MetaPage() {
                                   return (
                                     <div key={mv} className="flex items-center gap-1 p-1 bg-white rounded cursor-pointer hover:bg-gray-100" onClick={() => setModal({ kind: "move", name: mv })}>
                                       {moveDataFound && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: TYPE_COLORS[moveDataFound.type as PokemonType] }} />}
-                                      <span className="text-[10px] font-medium truncate">{mv}</span>
+                                      <span className="text-[10px] font-medium truncate">{tm(mv)}</span>
                                     </div>
                                   );
                                 })}
@@ -2449,7 +2504,7 @@ export default function MetaPage() {
                               <div className="grid grid-cols-6 gap-1">
                                 {(["hp", "attack", "defense", "spAtk", "spDef", "speed"] as const).map(stat => (
                                   <div key={stat} className="text-center">
-                                    <p className="text-[8px] text-muted-foreground">{{ hp: "HP", attack: "Atk", defense: "Def", spAtk: "SpA", spDef: "SpD", speed: "Spe" }[stat]}</p>
+                                    <p className="text-[8px] text-muted-foreground">{ts(stat)}</p>
                                     <p className={cn("text-[10px] font-bold", set.sp[stat] >= 20 ? "text-emerald-600" : set.sp[stat] > 0 ? "text-gray-700" : "text-gray-400")}>{set.sp[stat]}</p>
                                   </div>
                                 ))}
@@ -2462,7 +2517,7 @@ export default function MetaPage() {
                   </div>
 
                   <Link href="/team-builder" className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all text-sm">
-                    <Sparkles className="w-4 h-4" /> Load in Team Builder <ArrowRight className="w-4 h-4" />
+                    <Sparkles className="w-4 h-4" /> {t('meta.openInTeamBuilder')} <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
               );
@@ -2470,7 +2525,7 @@ export default function MetaPage() {
 
             {modal.kind === "anti-meta" && (() => {
               const team = ANTI_META_TEAMS.find(t => t.id === modal.id);
-              if (!team) return <div className="p-8 text-center text-muted-foreground">Team not found</div>;
+              if (!team) return <div className="p-8 text-center text-muted-foreground">{t('meta.teamNotFound')}</div>;
               const teamPokemon = team.pokemonIds.map(id => POKEMON_SEED.find(p => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p);
               const corePokemon = team.coreIds.map(id => POKEMON_SEED.find(p => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p);
               const builderSlots = team.pokemonIds.map(id => {
@@ -2491,7 +2546,7 @@ export default function MetaPage() {
                   <div>
                     <div className="flex items-center gap-3 mb-1 flex-wrap">
                       <h2 className="text-2xl font-extrabold">{team.name}</h2>
-                      <span className={cn("px-2.5 py-1 text-xs font-bold rounded-lg", team.winVsMeta >= 55 ? "bg-green-100 text-green-700" : "bg-purple-100 text-purple-700")}>{team.winVsMeta}% WR vs Meta</span>
+                      <span className={cn("px-2.5 py-1 text-xs font-bold rounded-lg", team.winVsMeta >= 55 ? "bg-green-100 text-green-700" : "bg-purple-100 text-purple-700")}>{team.winVsMeta}% {t('meta.wrVsMeta')}</span>
                     </div>
                     <p className="text-sm text-muted-foreground">{team.strategy}</p>
                   </div>
@@ -2503,7 +2558,7 @@ export default function MetaPage() {
                       return (
                         <div key={i} className="flex flex-col items-center cursor-pointer relative" onClick={() => setModal({ kind: "pokemon", name: pkm.name })}>
                           <Image src={pkm.officialArt} alt={pkm.name} width={72} height={72} className={cn("drop-shadow-lg hover:scale-110 transition-transform", isCore && "ring-2 ring-purple-400 rounded-full")} unoptimized />
-                          <span className="text-[10px] font-semibold mt-1">{pkm.name}</span>
+                          <span className="text-[10px] font-semibold mt-1">{tp(pkm.name)}</span>
                           {isCore && <span className="absolute -top-1 -right-1 px-1 py-0.5 text-[7px] font-bold bg-purple-500 text-white rounded">CORE</span>}
                         </div>
                       );
@@ -2514,14 +2569,14 @@ export default function MetaPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Counters */}
                     <div>
-                      <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Beats These Archetypes</h5>
+                      <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">{t('meta.beatsArchetypes')}</h5>
                       <div className="flex flex-wrap gap-1">
                         {team.counters.map(c => <span key={c} className="px-2 py-1 text-xs font-medium rounded-lg bg-green-50 text-green-600 border border-green-200">✓ {c}</span>)}
                       </div>
                     </div>
                     {/* Weaknesses */}
                     <div>
-                      <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Weak To</h5>
+                      <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">{t('meta.weakTo')}</h5>
                       <div className="flex flex-wrap gap-1">
                         {team.weakTo.map(w => <span key={w} className="px-2 py-1 text-xs font-medium rounded-lg bg-red-50 text-red-600 border border-red-200">✗ {w}</span>)}
                       </div>
@@ -2536,7 +2591,7 @@ export default function MetaPage() {
                         <div key={pkm.id} className="p-4 bg-gray-50 rounded-xl border border-gray-200">
                           <div className="flex items-center gap-2 mb-2">
                             <Image src={pkm.sprite} alt={pkm.name} width={36} height={36} className="rounded" unoptimized />
-                            <p className="text-sm font-bold">{pkm.name}</p>
+                            <p className="text-sm font-bold">{tp(pkm.name)}</p>
                           </div>
                           <p className="text-[10px] text-muted-foreground">No usage data available</p>
                         </div>
@@ -2546,14 +2601,14 @@ export default function MetaPage() {
                           <div className="flex items-center gap-2 mb-3">
                             <Image src={pkm.sprite} alt={pkm.name} width={36} height={36} className="rounded" unoptimized />
                             <div>
-                              <p className="text-sm font-bold">{pkm.name}</p>
+                              <p className="text-sm font-bold">{tp(pkm.name)}</p>
                               {set.name && <p className="text-[10px] text-muted-foreground">{set.name}</p>}
                             </div>
                           </div>
                           <div className="space-y-1.5 text-xs">
-                            <div className="flex justify-between"><span className="text-muted-foreground">Ability</span><span className="font-semibold">{set.ability}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Item</span><span className="font-semibold">{set.item}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Nature</span><span className="font-semibold">{set.nature}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Ability</span><span className="font-semibold">{ta(set.ability)}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Item</span><span className="font-semibold">{ti(set.item)}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Nature</span><span className="font-semibold">{tn(set.nature)}</span></div>
                             <div className="border-t border-gray-200 pt-1.5 mt-1.5">
                               <p className="text-[10px] text-muted-foreground uppercase mb-1">Moves</p>
                               <div className="grid grid-cols-2 gap-1">
@@ -2562,7 +2617,7 @@ export default function MetaPage() {
                                   return (
                                     <div key={mv} className="flex items-center gap-1 p-1 bg-white rounded cursor-pointer hover:bg-gray-100" onClick={() => setModal({ kind: "move", name: mv })}>
                                       {moveDataFound && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: TYPE_COLORS[moveDataFound.type as PokemonType] }} />}
-                                      <span className="text-[10px] font-medium truncate">{mv}</span>
+                                      <span className="text-[10px] font-medium truncate">{tm(mv)}</span>
                                     </div>
                                   );
                                 })}
@@ -2573,7 +2628,7 @@ export default function MetaPage() {
                               <div className="grid grid-cols-6 gap-1">
                                 {(["hp", "attack", "defense", "spAtk", "spDef", "speed"] as const).map(stat => (
                                   <div key={stat} className="text-center">
-                                    <p className="text-[8px] text-muted-foreground">{{ hp: "HP", attack: "Atk", defense: "Def", spAtk: "SpA", spDef: "SpD", speed: "Spe" }[stat]}</p>
+                                    <p className="text-[8px] text-muted-foreground">{ts(stat)}</p>
                                     <p className={cn("text-[10px] font-bold", set.sp[stat] >= 20 ? "text-emerald-600" : set.sp[stat] > 0 ? "text-gray-700" : "text-gray-400")}>{set.sp[stat]}</p>
                                   </div>
                                 ))}
@@ -2586,7 +2641,7 @@ export default function MetaPage() {
                   </div>
 
                   <button onClick={() => window.open("/team-builder?team=" + btoa(builderJson), "_blank")} className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all text-sm">
-                    <Sparkles className="w-4 h-4" /> Open in Team Builder <ArrowRight className="w-4 h-4" />
+                    <Sparkles className="w-4 h-4" /> {t('meta.openInTeamBuilder')} <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               );
@@ -2594,7 +2649,7 @@ export default function MetaPage() {
 
             {modal.kind === "tournament-team" && (() => {
               const team = _VALID_CHAMPIONS_TEAMS.find(t => t.id === modal.id);
-              if (!team) return <div className="p-8 text-center text-muted-foreground">Team not found</div>;
+              if (!team) return <div className="p-8 text-center text-muted-foreground">{t('meta.teamNotFound')}</div>;
               const teamPokemon = team.pokemonIds.map(id => POKEMON_SEED.find(p => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p);
               const allTypes = [...new Set(teamPokemon.flatMap(p => p.types))];
               const corePairs = _VALID_CORE_PAIRS.filter(cp => team.pokemonIds.includes(cp.pokemon1) && team.pokemonIds.includes(cp.pokemon2));
@@ -2634,7 +2689,7 @@ export default function MetaPage() {
                     {teamPokemon.map((pkm, i) => (
                       <div key={i} className="flex flex-col items-center cursor-pointer" onClick={() => setModal({ kind: "pokemon", name: pkm.name })}>
                         <Image src={pkm.officialArt} alt={pkm.name} width={72} height={72} className="drop-shadow-lg hover:scale-110 transition-transform" unoptimized />
-                        <span className="text-[10px] font-semibold mt-1">{pkm.name}</span>
+                        <span className="text-[10px] font-semibold mt-1">{tp(pkm.name)}</span>
                       </div>
                     ))}
                   </div>
@@ -2643,7 +2698,7 @@ export default function MetaPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Members + Stats */}
                     <div>
-                      <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Team Members</h5>
+                      <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">{t('meta.teamMembers')}</h5>
                       <div className="space-y-2">
                         {teamPokemon.map(p => {
                           const usage = _VALID_TOURNAMENT_USAGE.find(u => u.pokemonId === p.id);
@@ -2652,15 +2707,15 @@ export default function MetaPage() {
                               <div className="flex items-center gap-2">
                                 <Image src={p.sprite} alt={p.name} width={28} height={28} className="rounded" unoptimized />
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-semibold">{p.name}</p>
-                                  <div className="flex gap-0.5">{p.types.map(t => <span key={t} className="px-1 py-0.5 text-[7px] font-bold uppercase rounded text-white/90" style={{ backgroundColor: `${TYPE_COLORS[t]}AA` }}>{t.slice(0, 3)}</span>)}</div>
+                                  <p className="text-xs font-semibold">{tp(p.name)}</p>
+                                  <div className="flex gap-0.5">{p.types.map(ty => <span key={ty} className="px-1 py-0.5 text-[7px] font-bold uppercase rounded text-white/90" style={{ backgroundColor: `${TYPE_COLORS[ty]}AA` }}>{tt(ty)}</span>)}</div>
                                 </div>
                                 {usage && <span className="text-[10px] text-muted-foreground">{usage.usageRate}% use</span>}
                               </div>
                               <div className="mt-1 grid grid-cols-6 gap-1">
                                 {(["hp", "attack", "defense", "spAtk", "spDef", "speed"] as const).map(stat => (
                                   <div key={stat} className="text-center">
-                                    <p className="text-[8px] text-muted-foreground">{({ hp: "HP", attack: "Atk", defense: "Def", spAtk: "SpA", spDef: "SpD", speed: "Spe" } as Record<string, string>)[stat]}</p>
+                                    <p className="text-[8px] text-muted-foreground">{ts(stat)}</p>
                                     <p className="text-[9px] font-bold">{p.baseStats[stat]}</p>
                                   </div>
                                 ))}
@@ -2673,23 +2728,23 @@ export default function MetaPage() {
 
                     {/* Analysis */}
                     <div>
-                      <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Team Analysis</h5>
+                      <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">{t('meta.teamAnalysis')}</h5>
                       <div className="space-y-2">
-                        <div className="p-2 bg-white/50 rounded-lg"><p className="text-[10px] text-muted-foreground uppercase">Player</p><p className="text-xs font-semibold">{team.player}</p></div>
-                        <div className="p-2 bg-white/50 rounded-lg"><p className="text-[10px] text-muted-foreground uppercase">Tournament</p><p className="text-xs font-semibold">{team.tournament}</p></div>
-                        <div className="p-2 bg-white/50 rounded-lg"><p className="text-[10px] text-muted-foreground uppercase">Placement</p><p className="text-xs font-semibold">{team.placement === 1 ? "1st Place (Champion)" : team.placement === 2 ? "2nd Place (Finalist)" : `Top ${team.placement}`}</p></div>
-                        <div className="p-2 bg-white/50 rounded-lg"><p className="text-[10px] text-muted-foreground uppercase">Record</p><p className="text-xs font-semibold">{team.wins}W - {team.losses}L ({((team.wins / (team.wins + team.losses)) * 100).toFixed(0)}% WR)</p></div>
-                        <div className="p-2 bg-white/50 rounded-lg"><p className="text-[10px] text-muted-foreground uppercase">Tournament Size</p><p className="text-xs font-semibold">{team.players} players</p></div>
+                        <div className="p-2 bg-white/50 rounded-lg"><p className="text-[10px] text-muted-foreground uppercase">{t('meta.player')}</p><p className="text-xs font-semibold">{team.player}</p></div>
+                        <div className="p-2 bg-white/50 rounded-lg"><p className="text-[10px] text-muted-foreground uppercase">{t('meta.tournament')}</p><p className="text-xs font-semibold">{team.tournament}</p></div>
+                        <div className="p-2 bg-white/50 rounded-lg"><p className="text-[10px] text-muted-foreground uppercase">{t('meta.placement')}</p><p className="text-xs font-semibold">{team.placement === 1 ? "1st Place (Champion)" : team.placement === 2 ? "2nd Place (Finalist)" : `Top ${team.placement}`}</p></div>
+                        <div className="p-2 bg-white/50 rounded-lg"><p className="text-[10px] text-muted-foreground uppercase">{t('meta.record')}</p><p className="text-xs font-semibold">{team.wins}W - {team.losses}L ({((team.wins / (team.wins + team.losses)) * 100).toFixed(0)}% WR)</p></div>
+                        <div className="p-2 bg-white/50 rounded-lg"><p className="text-[10px] text-muted-foreground uppercase">{t('meta.tournamentSize')}</p><p className="text-xs font-semibold">{team.players} players</p></div>
                         <div className="p-2 bg-white/50 rounded-lg">
-                          <p className="text-[10px] text-muted-foreground uppercase">Type Coverage</p>
-                          <div className="flex flex-wrap gap-0.5 mt-0.5">{allTypes.map(t => <span key={t} className="px-1 py-0.5 text-[7px] font-bold uppercase rounded text-white/90" style={{ backgroundColor: `${TYPE_COLORS[t]}AA` }}>{t}</span>)}</div>
+                          <p className="text-[10px] text-muted-foreground uppercase">{t('meta.typeCoverage')}</p>
+                          <div className="flex flex-wrap gap-0.5 mt-0.5">{allTypes.map(ty => <span key={ty} className="px-1 py-0.5 text-[7px] font-bold uppercase rounded text-white/90" style={{ backgroundColor: `${TYPE_COLORS[ty]}AA` }}>{ty}</span>)}</div>
                         </div>
                       </div>
                     </div>
 
                     {/* Cores + Speed */}
                     <div>
-                      <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Core Pairs in Team</h5>
+                      <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">{t('meta.corePairsInTeam')}</h5>
                       {corePairs.length > 0 ? (
                         <div className="space-y-2">
                           {corePairs.sort((a, b) => b.winRate - a.winRate).map(cp => {
@@ -2710,19 +2765,19 @@ export default function MetaPage() {
                           })}
                         </div>
                       ) : (
-                        <p className="text-xs text-muted-foreground">No tracked core pairs in this team</p>
+                        <p className="text-xs text-muted-foreground">{t('meta.noTrackedCorePairs')}</p>
                       )}
 
                       <div className="mt-3 pt-2 border-t border-gray-200">
-                        <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Speed Tiers</h5>
+                        <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">{t('meta.speedTiersInTeam')}</h5>
                         <div className="space-y-1">
                           {[...teamPokemon].sort((a, b) => b.baseStats.speed - a.baseStats.speed).map(p => (
                             <div key={p.id} className="flex items-center gap-2">
                               <span className="text-[10px] font-mono font-bold w-6 text-right">{p.baseStats.speed}</span>
-                              <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              <div className="flex-1 h-1.5 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
                                 <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400" style={{ width: `${Math.min(100, (p.baseStats.speed / 150) * 100)}%` }} />
                               </div>
-                              <span className="text-[10px] text-muted-foreground w-16 truncate">{p.name}</span>
+                              <span className="text-[10px] text-muted-foreground w-16 truncate">{tp(p.name)}</span>
                             </div>
                           ))}
                         </div>
@@ -2731,7 +2786,7 @@ export default function MetaPage() {
                   </div>
 
                   <button onClick={() => window.open("/team-builder?team=" + btoa(builderJson), "_blank")} className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all text-sm">
-                    <Sparkles className="w-4 h-4" /> Open in Team Builder <ArrowRight className="w-4 h-4" />
+                    <Sparkles className="w-4 h-4" /> {t('meta.openInTeamBuilder')} <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               );
@@ -2748,6 +2803,7 @@ export default function MetaPage() {
 // COMPONENT: Meta Team Card (clickable with expanded details)
 // ══════════════════════════════════════════════════════════════════════════
 function MetaTeamCard({ meta, expanded, onToggle }: { meta: MetaTeamPrediction; expanded: boolean; onToggle: () => void }) {
+  const { t, tp, tm, ta, ti, tn, ts, tt } = useI18n();
   return (
     <motion.div layout className={cn("rounded-xl border transition-all overflow-hidden", expanded ? "bg-emerald-50/30 border-emerald-300 col-span-full" : "glass border-gray-200/60 hover:border-emerald-300")}>
       <button onClick={onToggle} className="w-full text-left p-4">
@@ -2768,7 +2824,7 @@ function MetaTeamCard({ meta, expanded, onToggle }: { meta: MetaTeamPrediction; 
             return p ? (
               <div key={id} className="flex flex-col items-center">
                 <Image src={p.sprite} alt={p.name} width={36} height={36} className="rounded" unoptimized />
-                <span className="text-[8px] text-muted-foreground mt-0.5 truncate w-10 text-center">{p.name}</span>
+                <span className="text-[8px] text-muted-foreground mt-0.5 truncate w-10 text-center">{tp(p.name)}</span>
               </div>
             ) : null;
           })}
@@ -2789,7 +2845,7 @@ function MetaTeamCard({ meta, expanded, onToggle }: { meta: MetaTeamPrediction; 
               {/* Detailed Stats */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Prediction Reasoning</h5>
+                  <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">{t('meta.predictionReasoning')}</h5>
                   <div className="space-y-1.5">
                     {meta.reasoning.map((r, i) => (
                       <p key={i} className="text-xs text-foreground flex items-start gap-1.5"><span className="text-emerald-500 mt-px flex-shrink-0">•</span>{r}</p>
@@ -2798,7 +2854,7 @@ function MetaTeamCard({ meta, expanded, onToggle }: { meta: MetaTeamPrediction; 
                 </div>
 
                 <div>
-                  <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Team Composition</h5>
+                  <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">{t('meta.teamComposition')}</h5>
                   <div className="space-y-1.5">
                     {meta.pokemonIds.map(id => {
                       const p = POKEMON_SEED.find(pk => pk.id === id);
@@ -2808,8 +2864,8 @@ function MetaTeamCard({ meta, expanded, onToggle }: { meta: MetaTeamPrediction; 
                         <div key={id} className="flex items-center gap-2 p-1.5 rounded-lg bg-white/50">
                           <Image src={p.sprite} alt={p.name} width={24} height={24} className="rounded" unoptimized />
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold truncate">{p.name}</p>
-                            <div className="flex gap-0.5">{p.types.map(t => <span key={t} className="w-2 h-2 rounded-full" style={{ backgroundColor: TYPE_COLORS[t] }} />)}</div>
+                            <p className="text-xs font-semibold truncate">{tp(p.name)}</p>
+                            <div className="flex gap-0.5">{p.types.map(ty => <span key={ty} className="w-2 h-2 rounded-full" style={{ backgroundColor: TYPE_COLORS[ty] }} />)}</div>
                           </div>
                           <div className="text-right">
                             {usage && <p className="text-[10px] text-muted-foreground">{usage.usageRate}% use · {usage.winRate}% WR</p>}
@@ -2821,16 +2877,16 @@ function MetaTeamCard({ meta, expanded, onToggle }: { meta: MetaTeamPrediction; 
                 </div>
 
                 <div>
-                  <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Meta Position</h5>
+                  <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">{t('meta.metaPosition')}</h5>
                   <div className="space-y-2">
-                    <div className="flex justify-between p-2 bg-white/50 rounded-lg"><span className="text-xs text-muted-foreground">Confidence</span><span className="text-xs font-bold">{meta.confidence}%</span></div>
-                    <div className="flex justify-between p-2 bg-white/50 rounded-lg"><span className="text-xs text-muted-foreground">Meta Share</span><span className="text-xs font-bold">{meta.metaShare}%</span></div>
-                    <div className="flex justify-between p-2 bg-white/50 rounded-lg"><span className="text-xs text-muted-foreground">Historical Wins</span><span className="text-xs font-bold">{meta.historicalWins}</span></div>
-                    <div className="flex justify-between p-2 bg-white/50 rounded-lg"><span className="text-xs text-muted-foreground">Archetype</span><span className="text-xs font-bold capitalize">{meta.archetype}</span></div>
-                    <div className="flex justify-between p-2 bg-white/50 rounded-lg"><span className="text-xs text-muted-foreground">Trend</span><span className={cn("text-xs font-bold", meta.recentTrend === "rising" ? "text-emerald-600" : meta.recentTrend === "falling" ? "text-red-600" : "text-gray-600")}>{meta.recentTrend === "rising" ? "↑ Rising" : meta.recentTrend === "falling" ? "↓ Falling" : "→ Stable"}</span></div>
+                    <div className="flex justify-between p-2 bg-white/50 rounded-lg"><span className="text-xs text-muted-foreground">{t('meta.confidence')}</span><span className="text-xs font-bold">{meta.confidence}%</span></div>
+                    <div className="flex justify-between p-2 bg-white/50 rounded-lg"><span className="text-xs text-muted-foreground">{t('meta.metaShare')}</span><span className="text-xs font-bold">{meta.metaShare}%</span></div>
+                    <div className="flex justify-between p-2 bg-white/50 rounded-lg"><span className="text-xs text-muted-foreground">{t('meta.historicalWins')}</span><span className="text-xs font-bold">{meta.historicalWins}</span></div>
+                    <div className="flex justify-between p-2 bg-white/50 rounded-lg"><span className="text-xs text-muted-foreground">{t('meta.archetype')}</span><span className="text-xs font-bold capitalize">{meta.archetype}</span></div>
+                    <div className="flex justify-between p-2 bg-white/50 rounded-lg"><span className="text-xs text-muted-foreground">{t('meta.trend')}</span><span className={cn("text-xs font-bold", meta.recentTrend === "rising" ? "text-emerald-600" : meta.recentTrend === "falling" ? "text-red-600" : "text-gray-600")}>{meta.recentTrend === "rising" ? "↑ Rising" : meta.recentTrend === "falling" ? "↓ Falling" : "→ Stable"}</span></div>
                   </div>
                   <Link href="/team-builder" className="mt-3 flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors">
-                    <Sparkles className="w-3 h-3" /> Load in Team Builder <ArrowRight className="w-3 h-3" />
+                    <Sparkles className="w-3 h-3" /> {t('meta.openInTeamBuilder')} <ArrowRight className="w-3 h-3" />
                   </Link>
                 </div>
               </div>
@@ -2846,6 +2902,7 @@ function MetaTeamCard({ meta, expanded, onToggle }: { meta: MetaTeamPrediction; 
 // COMPONENT: Tournament Team Card (clickable with advanced details)
 // ══════════════════════════════════════════════════════════════════════════
 function TournamentTeamCard({ team, expanded, onToggle }: { team: TournamentTeam; expanded: boolean; onToggle: () => void }) {
+  const { t, tp, tm, ta, ti, tn, ts, tt } = useI18n();
   const megaId = getMegaIdFromArchetype(team.archetype);
   const teamPokemon = team.pokemonIds.map(id => POKEMON_SEED.find(p => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p);
   const allTypes = [...new Set(teamPokemon.flatMap(p => p.types))];
@@ -2892,7 +2949,7 @@ function TournamentTeamCard({ team, expanded, onToggle }: { team: TournamentTeam
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Team Members Detail */}
                 <div>
-                  <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Team Members ({teamPokemon.length})</h5>
+                  <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">{t('meta.teamMembers', { count: teamPokemon.length })}</h5>
                   <div className="space-y-2">
                     {teamPokemon.map(p => {
                       const usage = _VALID_TOURNAMENT_USAGE.find(u => u.pokemonId === p.id);
@@ -2907,7 +2964,7 @@ function TournamentTeamCard({ team, expanded, onToggle }: { team: TournamentTeam
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-semibold">{pIsMega ? getMegaName(p) : p.name}{pIsMega && <span className="ml-1 text-[8px] text-amber-600 font-bold">MEGA</span>}</p>
-                              <div className="flex gap-0.5">{p.types.map(t => <span key={t} className="px-1 py-0.5 text-[7px] font-bold uppercase rounded text-white/90" style={{ backgroundColor: `${TYPE_COLORS[t]}AA` }}>{t.slice(0, 3)}</span>)}</div>
+                              <div className="flex gap-0.5">{p.types.map(ty => <span key={ty} className="px-1 py-0.5 text-[7px] font-bold uppercase rounded text-white/90" style={{ backgroundColor: `${TYPE_COLORS[ty]}AA` }}>{tt(ty)}</span>)}</div>
                             </div>
                             <div className="text-right text-[10px]">
                               {usage && <p className="text-muted-foreground">{usage.usageRate}% use</p>}
@@ -2917,7 +2974,7 @@ function TournamentTeamCard({ team, expanded, onToggle }: { team: TournamentTeam
                           <div className="mt-1 grid grid-cols-6 gap-1">
                             {(["hp", "attack", "defense", "spAtk", "spDef", "speed"] as const).map(stat => (
                               <div key={stat} className="text-center">
-                                <p className="text-[8px] text-muted-foreground">{({ hp: "HP", attack: "Atk", defense: "Def", spAtk: "SpA", spDef: "SpD", speed: "Spe" } as any)[stat]}</p>
+                                <p className="text-[8px] text-muted-foreground">{ts(stat)}</p>
                                 <p className="text-[9px] font-bold">{p.baseStats[stat]}</p>
                               </div>
                             ))}
@@ -2930,10 +2987,10 @@ function TournamentTeamCard({ team, expanded, onToggle }: { team: TournamentTeam
 
                 {/* Team Analysis */}
                 <div>
-                  <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Team Analysis</h5>
+                  <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">{t('meta.teamAnalysis')}</h5>
                   <div className="space-y-2">
                     <div className="p-2 bg-white/50 rounded-lg">
-                      <p className="text-[10px] text-muted-foreground uppercase">Archetype</p>
+                      <p className="text-[10px] text-muted-foreground uppercase">{t('meta.archetype')}</p>
                       <p className="text-xs font-semibold capitalize">{team.archetype}</p>
                     </div>
                     <div className="p-2 bg-white/50 rounded-lg">
@@ -2941,7 +2998,7 @@ function TournamentTeamCard({ team, expanded, onToggle }: { team: TournamentTeam
                       <p className="text-xs font-semibold">{team.tournament} ({team.year})</p>
                     </div>
                     <div className="p-2 bg-white/50 rounded-lg">
-                      <p className="text-[10px] text-muted-foreground uppercase">Placement</p>
+                      <p className="text-[10px] text-muted-foreground uppercase">{t('meta.placement')}</p>
                       <p className="text-xs font-semibold">{team.placement === 1 ? "1st Place (Champion)" : team.placement === 2 ? "2nd Place (Finalist)" : `Top ${team.placement}`}</p>
                     </div>
                     <div className="p-2 bg-white/50 rounded-lg">
@@ -2949,9 +3006,9 @@ function TournamentTeamCard({ team, expanded, onToggle }: { team: TournamentTeam
                       <p className="text-xs font-semibold">{team.region}</p>
                     </div>
                     <div className="p-2 bg-white/50 rounded-lg">
-                      <p className="text-[10px] text-muted-foreground uppercase">Type Coverage</p>
+                      <p className="text-[10px] text-muted-foreground uppercase">{t('meta.typeCoverage')}</p>
                       <div className="flex flex-wrap gap-0.5 mt-0.5">
-                        {allTypes.map(t => <span key={t} className="px-1 py-0.5 text-[7px] font-bold uppercase rounded text-white/90" style={{ backgroundColor: `${TYPE_COLORS[t]}AA` }}>{t}</span>)}
+                        {allTypes.map(ty => <span key={ty} className="px-1 py-0.5 text-[7px] font-bold uppercase rounded text-white/90" style={{ backgroundColor: `${TYPE_COLORS[ty]}AA` }}>{ty}</span>)}
                       </div>
                     </div>
                   </div>
@@ -2959,7 +3016,7 @@ function TournamentTeamCard({ team, expanded, onToggle }: { team: TournamentTeam
 
                 {/* Cores & Synergies */}
                 <div>
-                  <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Core Pairs in Team</h5>
+                  <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">{t('meta.corePairsInTeam')}</h5>
                   {corePairs.length > 0 ? (
                     <div className="space-y-2">
                       {corePairs.sort((a, b) => b.winRate - a.winRate).map(cp => {
@@ -2981,20 +3038,20 @@ function TournamentTeamCard({ team, expanded, onToggle }: { team: TournamentTeam
                       })}
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground">No tracked core pairs in this team</p>
+                    <p className="text-xs text-muted-foreground">{t('meta.noTrackedCorePairs')}</p>
                   )}
 
                   {/* Speed Tiers */}
                   <div className="mt-3 pt-2 border-t border-gray-200">
-                    <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Speed Tiers</h5>
+                    <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">{t('meta.speedTiersInTeam')}</h5>
                     <div className="space-y-1">
                       {teamPokemon.sort((a, b) => b.baseStats.speed - a.baseStats.speed).map(p => (
                         <div key={p.id} className="flex items-center gap-2">
                           <span className="text-[10px] font-mono font-bold w-6 text-right">{p.baseStats.speed}</span>
-                          <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="flex-1 h-1.5 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
                             <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400" style={{ width: `${Math.min(100, (p.baseStats.speed / 150) * 100)}%` }} />
                           </div>
-                          <span className="text-[10px] text-muted-foreground w-16 truncate">{p.name}</span>
+                          <span className="text-[10px] text-muted-foreground w-16 truncate">{tp(p.name)}</span>
                         </div>
                       ))}
                     </div>

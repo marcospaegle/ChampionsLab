@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { LastUpdated } from "@/components/last-updated";
+import { useI18n } from "@/lib/i18n";
 
 export default function AboutPage() {
   const [form, setForm] = useState({ name: "", email: "", type: "feedback", message: "" });
@@ -18,13 +19,14 @@ export default function AboutPage() {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const { t } = useI18n();
 
   const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     trackEvent("image_upload", "about");
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      setResult({ ok: false, msg: "Image too large (max 5MB)." });
+      setResult({ ok: false, msg: t("about.contact.imageTooLarge") });
       return;
     }
     setImage(file);
@@ -62,7 +64,7 @@ export default function AboutPage() {
         setResult({ ok: false, msg: data.error });
       }
     } catch {
-      setResult({ ok: false, msg: "Network error. Please try again." });
+      setResult({ ok: false, msg: t("about.contact.networkError") });
     } finally {
       setSending(false);
     }
@@ -81,9 +83,9 @@ export default function AboutPage() {
             <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <p className="text-sm font-bold text-amber-800 dark:text-amber-300">Alpha Release - Free & Open Source</p>
+            <p className="text-sm font-bold text-amber-800 dark:text-amber-300">{t("about.alphaRelease")}</p>
             <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-0.5">
-              This project is in active development. Things may break or change. It&apos;s 100% free, open source (MIT), and community-driven.
+              {t("about.alphaDescription")}
             </p>
           </div>
         </div>
@@ -97,7 +99,7 @@ export default function AboutPage() {
         className="mb-6"
       >
         <a
-          href="https://discord.gg/kpwE7u3M"
+          href="https://discord.gg/WShMRRSrtm"
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => trackEvent("discord_click", "about")}
@@ -109,9 +111,9 @@ export default function AboutPage() {
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-[#5865F2] dark:text-[#7289DA]">Join our Discord Community</p>
+            <p className="text-sm font-bold text-[#5865F2] dark:text-[#7289DA]">{t("about.discord")}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Report bugs, suggest features, discuss the meta, and connect with other trainers
+              {t("about.discordDescription")}
             </p>
           </div>
           <ChevronRight className="w-5 h-5 text-[#5865F2]/50 group-hover:text-[#5865F2] transition-colors shrink-0" />
@@ -132,13 +134,13 @@ export default function AboutPage() {
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold">
                 <span className="bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
-                  About Us
+                  {t("about.title")}
                 </span>
               </h1>
               <LastUpdated page="meta" />
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              The people behind Champions Lab
+              {t("about.subtitle")}
             </p>
           </div>
         </div>
@@ -155,21 +157,12 @@ export default function AboutPage() {
         <div className="glass rounded-2xl p-6 border border-rose-200/60 dark:border-rose-400/20 bg-gradient-to-br from-rose-50/40 to-pink-50/40 dark:from-rose-500/10 dark:to-pink-500/5">
           <div className="flex items-center gap-3 mb-4">
             <Sparkles className="w-5 h-5 text-rose-500" />
-            <h2 className="text-lg font-bold">Why We Built This</h2>
+            <h2 className="text-lg font-bold">{t("about.whyWeBuilt")}</h2>
           </div>
           <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-            <p>
-              Champions Lab was born from a simple idea: <span className="font-semibold text-foreground">competitive Pokémon tools should be free and accessible to everyone</span>.
-              We&apos;re a small team of passionate Pokémon fans who have been playing VGC for years, and we wanted to create the ultimate companion for Pokémon Champions 2026.
-            </p>
-            <p>
-              Every feature you see - the Pokédex, the Team Builder, the 2,000,000+ battle simulation engine, the Meta analysis, PokéSchool - was built with love during our free time.
-              <span className="font-semibold text-foreground"> We don&apos;t charge anything. No ads, no paywalls, no premium tiers.</span> This project is and will always be 100% free.
-            </p>
-            <p>
-              We believe the competitive Pokémon community deserves high-quality tools without having to pay for them.
-              If you find Champions Lab useful, the best way to support us is to share it with your friends and fellow trainers!
-            </p>
+            <p dangerouslySetInnerHTML={{ __html: t("about.mission.p1") }} />
+            <p dangerouslySetInnerHTML={{ __html: t("about.mission.p2") }} />
+            <p dangerouslySetInnerHTML={{ __html: t("about.mission.p3") }} />
           </div>
         </div>
 
@@ -177,23 +170,23 @@ export default function AboutPage() {
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="glass rounded-2xl p-5 border border-amber-200/60 dark:border-amber-400/20 text-center">
             <AlertCircle className="w-6 h-6 text-amber-500 mx-auto mb-2" />
-            <p className="text-2xl font-extrabold font-heading text-amber-700 dark:text-amber-400">Alpha</p>
-            <p className="text-xs text-muted-foreground mt-1">In active development</p>
+            <p className="text-2xl font-extrabold font-heading text-amber-700 dark:text-amber-400">{t("about.facts.alpha")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("about.facts.alphaDesc")}</p>
           </div>
           <div className="glass rounded-2xl p-5 border border-gray-200/60 dark:border-gray-200/10 text-center">
             <Code className="w-6 h-6 text-violet-500 mx-auto mb-2" />
-            <p className="text-2xl font-extrabold font-heading text-violet-700 dark:text-violet-400">Open Source</p>
-            <p className="text-xs text-muted-foreground mt-1">MIT License, fully public</p>
+            <p className="text-2xl font-extrabold font-heading text-violet-700 dark:text-violet-400">{t("about.facts.openSource")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("about.facts.openSourceDesc")}</p>
           </div>
           <div className="glass rounded-2xl p-5 border border-gray-200/60 dark:border-gray-200/10 text-center">
             <Heart className="w-6 h-6 text-rose-500 mx-auto mb-2 fill-rose-500" />
-            <p className="text-2xl font-extrabold font-heading text-rose-700 dark:text-rose-400">100% Free</p>
-            <p className="text-xs text-muted-foreground mt-1">No ads, no paywalls, forever</p>
+            <p className="text-2xl font-extrabold font-heading text-rose-700 dark:text-rose-400">{t("about.facts.free")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("about.facts.freeDesc")}</p>
           </div>
           <div className="glass rounded-2xl p-5 border border-gray-200/60 dark:border-gray-200/10 text-center">
             <Users className="w-6 h-6 text-cyan-500 mx-auto mb-2" />
-            <p className="text-2xl font-extrabold font-heading text-cyan-700 dark:text-cyan-400">Community</p>
-            <p className="text-xs text-muted-foreground mt-1">Built by fans, for fans</p>
+            <p className="text-2xl font-extrabold font-heading text-cyan-700 dark:text-cyan-400">{t("about.facts.community")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("about.facts.communityDesc")}</p>
           </div>
         </div>
 
@@ -201,21 +194,12 @@ export default function AboutPage() {
         <div className="glass rounded-2xl p-6 border border-violet-200/60 dark:border-violet-400/20 bg-gradient-to-br from-violet-50/40 to-indigo-50/40 dark:from-violet-500/10 dark:to-indigo-500/5">
           <div className="flex items-center gap-3 mb-4">
             <Users className="w-5 h-5 text-violet-500" />
-            <h2 className="text-lg font-bold">Credits & Thanks</h2>
+            <h2 className="text-lg font-bold">{t("about.creditsTitle")}</h2>
           </div>
           <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-            <p>
-              <span className="font-semibold text-foreground">Champions Lab Team</span> - Design, development, battle engine, data curation, and everything in between.
-              We&apos;re a small but dedicated team that pours hours into making this the best competitive Pokémon tool out there.
-            </p>
-            <p>
-              Huge thanks to the <span className="font-semibold text-foreground">competitive Pokémon community</span> for the constant inspiration,
-              the tournament organizers who make VGC possible, and every player who has shared a team, written a guide, or helped a newcomer.
-            </p>
-            <p>
-              Special thanks to everyone who has reported bugs, suggested features, or just said something nice.
-              This project exists because of you.
-            </p>
+            <p dangerouslySetInnerHTML={{ __html: t("about.credits.p1") }} />
+            <p dangerouslySetInnerHTML={{ __html: t("about.credits.p2") }} />
+            <p dangerouslySetInnerHTML={{ __html: t("about.credits.p3") }} />
           </div>
           <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
             <Globe className="w-3.5 h-3.5" />
@@ -227,20 +211,15 @@ export default function AboutPage() {
         <div className="glass rounded-2xl p-6 border border-emerald-200/60 dark:border-emerald-400/20 bg-gradient-to-br from-emerald-50/40 to-cyan-50/40 dark:from-emerald-500/10 dark:to-cyan-500/5">
           <div className="flex items-center gap-3 mb-4">
             <Code2 className="w-5 h-5 text-emerald-600" />
-            <h2 className="text-lg font-bold">Want to Help?</h2>
+            <h2 className="text-lg font-bold">{t("about.wantToHelp")}</h2>
           </div>
           <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-            <p>
-              Champions Lab is open source and we welcome contributions! Whether you&apos;re a developer, a designer,
-              a competitive player with data to share, or just someone who spotted a bug - <span className="font-semibold text-foreground">we&apos;d love your help</span>.
-            </p>
-            <p>
-              You can report bugs, suggest features, or contribute code. Use the contact form below to get in touch,
-              or open an issue on our <a href="https://github.com/Andrew21P/ChampionsLab" target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("github_click", "about")} className="font-semibold text-emerald-600 hover:text-emerald-700 underline underline-offset-2">GitHub repository</a>.
-            </p>
-            <p>
-              If you&apos;d like to support us financially, every little bit helps keep the project alive:
-            </p>
+            <p dangerouslySetInnerHTML={{ __html: t("about.contribute.p1") }} />
+            <p dangerouslySetInnerHTML={{ __html: t("about.contribute.p2").replace(
+              /<github>(.*?)<\/github>/,
+              (_: string, label: string) => `<a href="https://github.com/Andrew21P/ChampionsLab" target="_blank" rel="noopener noreferrer" class="font-semibold text-emerald-600 hover:text-emerald-700 underline underline-offset-2">${label}</a>`
+            ) }} />
+            <p>{t("about.contribute.p3")}</p>
             <a
               href="https://buymeacoffee.com/championslab"
               target="_blank"
@@ -249,7 +228,7 @@ export default function AboutPage() {
               className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-900 hover:from-amber-500 hover:to-yellow-600 transition-all shadow-md hover:shadow-lg"
             >
               <Coffee className="w-4 h-4" />
-              Support Us on Buy Me a Coffee
+              {t("about.supportBmc")}
             </a>
           </div>
         </div>
@@ -258,17 +237,17 @@ export default function AboutPage() {
         <div className="glass rounded-2xl p-6 border border-sky-200/60 dark:border-sky-400/20 bg-gradient-to-br from-sky-50/40 to-blue-50/40 dark:from-sky-500/10 dark:to-blue-500/5">
           <div className="flex items-center gap-3 mb-4">
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
-            <h2 className="text-lg font-bold">Follow Us on X</h2>
+            <h2 className="text-lg font-bold">{t("about.followX")}</h2>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            Stay up to date with the latest Champions Lab updates, VGC news, and community highlights.
+            {t("about.followXDesc")}
           </p>
           <a
             href="https://x.com/ChampionsLabXYZ"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackEvent("twitter_click", "about", "follow")}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-md hover:shadow-lg"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-gray-900 dark:bg-white/10 text-white dark:text-white hover:bg-gray-800 dark:hover:bg-white/15 transition-all shadow-md hover:shadow-lg dark:shadow-none dark:border dark:border-white/10"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
             @ChampionsLabXYZ
@@ -279,16 +258,16 @@ export default function AboutPage() {
         <div className="glass rounded-2xl p-6 border border-amber-200/60 dark:border-amber-500/20 bg-gradient-to-br from-amber-50/40 to-orange-50/40 dark:from-amber-500/5 dark:to-orange-500/5">
           <div className="flex items-center gap-3 mb-5">
             <Mail className="w-5 h-5 text-amber-600" />
-            <h2 className="text-lg font-bold">Contact Us</h2>
+            <h2 className="text-lg font-bold">{t("about.contactTitle")}</h2>
           </div>
           <p className="text-sm text-muted-foreground mb-5">
-            Found a bug? Have a suggestion? Just want to say hi? We&apos;d love to hear from you!
+            {t("about.contactDesc")}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Name *</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">{t("about.contact.name")}</label>
                 <input
                   type="text"
                   required
@@ -296,11 +275,11 @@ export default function AboutPage() {
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-400/25 bg-white/80 dark:bg-gray-200/5 text-sm text-gray-900 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 transition-colors"
-                  placeholder="Your name"
+                  placeholder={t("about.contact.namePlaceholder")}
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Email *</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">{t("about.contact.email")}</label>
                 <input
                   type="email"
                   required
@@ -308,27 +287,27 @@ export default function AboutPage() {
                   value={form.email}
                   onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                   className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-400/25 bg-white/80 dark:bg-gray-200/5 text-sm text-gray-900 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 transition-colors"
-                  placeholder="you@example.com"
+                  placeholder={t("about.contact.emailPlaceholder")}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">Type</label>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">{t("about.contact.type")}</label>
               <select
                 value={form.type}
                 onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
                 className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-400/25 bg-white/80 dark:bg-gray-200/5 text-sm text-gray-900 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 transition-colors"
               >
-                <option value="feedback" className="dark:bg-[#111a2e]">Feedback / Suggestion</option>
-                <option value="bug" className="dark:bg-[#111a2e]">Bug Report</option>
-                <option value="feature" className="dark:bg-[#111a2e]">Feature Request</option>
-                <option value="other" className="dark:bg-[#111a2e]">Other</option>
+                <option value="feedback" className="dark:bg-[#111a2e]">{t("about.contact.feedback")}</option>
+                <option value="bug" className="dark:bg-[#111a2e]">{t("about.contact.bugReport")}</option>
+                <option value="feature" className="dark:bg-[#111a2e]">{t("about.contact.featureRequest")}</option>
+                <option value="other" className="dark:bg-[#111a2e]">{t("about.contact.other")}</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">Message *</label>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">{t("about.contact.message")}</label>
               <textarea
                 required
                 maxLength={5000}
@@ -336,13 +315,13 @@ export default function AboutPage() {
                 value={form.message}
                 onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
                 className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-400/25 bg-white/80 dark:bg-gray-200/5 text-sm text-gray-900 focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 transition-colors resize-none"
-                placeholder="Tell us what's on your mind..."
+                placeholder={t("about.contact.messagePlaceholder")}
               />
             </div>
 
             {/* Image Upload */}
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">Screenshot (optional)</label>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">{t("about.contact.screenshot")}</label>
               {imagePreview ? (
                 <div className="relative inline-block">
                   <Image src={imagePreview} alt="Preview" width={200} height={150} className="rounded-xl border border-gray-200 dark:border-gray-400/25 object-cover" unoptimized />
@@ -361,7 +340,7 @@ export default function AboutPage() {
                   className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-400/25 bg-white/50 dark:bg-gray-200/5 text-sm text-muted-foreground hover:border-amber-400 dark:hover:border-amber-500/40 hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
                 >
                   <ImagePlus className="w-4 h-4" />
-                  Add a screenshot (max 5MB)
+                  {t("about.contact.addScreenshot")}
                 </button>
               )}
               <input
@@ -387,7 +366,7 @@ export default function AboutPage() {
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold text-sm shadow-md shadow-amber-500/20 hover:from-amber-600 hover:to-orange-600 transition-all disabled:opacity-50"
             >
               {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              {sending ? "Sending..." : "Send Message"}
+              {sending ? t("about.contact.sending") : t("about.contact.send")}
             </button>
           </form>
         </div>

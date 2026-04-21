@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "@/lib/motion";
 import { ArrowUpRight, X, Sparkles } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface ChangelogEntry {
   date: string;
@@ -10,6 +11,75 @@ interface ChangelogEntry {
 }
 
 const SHARED_ENTRIES: ChangelogEntry[] = [
+  {
+    date: "18/04/2026",
+    items: [
+      "📋 PokéPaste  —  new /paste page to share teams as a read-only view with gradient title header, copy-as-text export, and Open in Team Builder link that actually loads the team",
+      "🔒 Secure PokéPaste sharing  —  hide Nature / Stat Points / Item / Ability checkboxes now strip data server-side (new share entry) instead of URL params that could be removed",
+      "🖼️ Share image fixes  —  sprites now load correctly after CDN migration (same-origin fallback for canvas), long team names are ellipsized so they don't overlap the QR code",
+      "🌙 Dark mode: About page X button, share modal URL inputs, paste URL input",
+    ],
+  },
+  {
+    date: "17/04/2026",
+    items: [
+      "🚀 Sprite CDN  -  all Pokémon sprites now served from Hetzner Object Storage with 1-year immutable cache headers for faster load times",
+      "🌍 French i18n for Team Builder  -  role tags, teammate suggestion reasons, nature suggestion text, move/ability/SP/set reasons, and competitive set names (288 names translated via word-level decomposition of 40+ VGC vocabulary terms)",
+      "🌍 French i18n for stat presets  -  all stat preset labels now translated (Balanced, Sweeper, Tank, etc.)",
+      "🌍 French i18n for About page  -  mission, credits, and contribute sections refactored from hardcoded English to i18n keys with HTML support",
+      "🐛 Fixed ability description newlines  -  96 literal '\\n' strings in French ability descriptions replaced with proper line breaks",
+      "🌙 Dark mode: Language Selector  -  dropdown background now uses proper dark color instead of transparent",
+      "🌙 Dark mode: PokéÉcole  -  teal color remaps for dark backgrounds (50/100/200/500/700/800 shades) and improved text contrast on learn page titles/sections",
+      "🌙 Dark mode: Season Info card  -  icon container, shield badge, text labels, grid cells, LIVE badge, active tab pill, and rule tooltips all now have proper dark variants",
+    ],
+  },
+  {
+    date: "16/04/2026",
+    items: [
+      "🌍 French i18n for Meta page  -  all overview sections (Tournament Core Pairs, ML-Discovered Cores, Type Distribution, Archetype Rankings, Key Counter Matchups, Rising/Falling trends), Core Pairs tab, Speed Tiers tab, and Moves tab now fully translated",
+      "🌍 French i18n for Meta Pokémon modal  -  type badges, tier label, ability names & descriptions, Hidden/Champions badges, move names & categories, Nature/Ability/Item labels, ML best sets header translated",
+      "🌍 French i18n for PokéSchool  -  all 9 chapters with full French article content, subsections, tips, and examples wired via locale-based section overlay",
+      "🌍 French i18n for overview buttons  -  'View all core pairs', 'View all rankings', 'View all teams', 'View matchup details', 'View all move analysis', and 'View all tournament teams' buttons translated",
+      "🔗 Updated Discord invite link  -  Pokédex landing page and About page now point to the new Discord server",
+      "🐛 Fixed WR abbreviation in Core Pairs  -  replaced fragile .slice(0,2) hack with dedicated wrAbbr i18n key (WR/TV)",
+      "🐛 Fixed JSON double-comma syntax error  -  resolved invalid JSON in both en.json and fr.json that broke the dev server",
+      "🐛 Fixed activeSections scope in PokéSchool  -  variable was declared inside toggleSection() instead of component scope, causing runtime crash",
+    ],
+  },
+  {
+    date: "14/04/2026",
+    items: [
+      "📄 PDF Export for Battle Bot  -  export a full Battle Analysis Report as a beautiful light-themed coaching study guide with executive summary, lead analysis, archetype matchups, threat scouting, strategy & game plan, weaknesses, and improvement proposals",
+      "📄 PDF Export for Team Tester  -  export a comprehensive Matchup Study Report with team comparison, lead selection guide, speed tier comparison, type coverage & weakness analysis, team identity & role map, Pokémon impact analysis, matchup insights, improvement proposals, and strategy flowchart",
+      "🎯 Speed Tier Comparison in Team Tester PDF  -  full table of all 12 Pokémon sorted by speed showing Base/Min/Neutral/Max/Scarf/Tailwind speeds with coaching text about the speed gap",
+      "🛡️ Type Coverage & Weaknesses in Team Tester PDF  -  per-team breakdown of defensive weaknesses, resistances, and offensive blind spots with critical weakness warnings",
+      "🧭 Team Identity & Role Map in Team Tester PDF  -  detected archetypes with confidence badges, role tables for each team (speed-control, redirector, sweeper, etc.), missing role warnings, and synergy scores",
+      "🌳 Strategy Flowchart in Team Tester PDF  -  turn-by-turn decision tree with archetype, win condition, color-coded action steps, key threats, and backup plan",
+      "📋 Import from Pokepaste in Team Tester  -  paste a team in Pokepaste/Showdown format directly into the team loader modal for quick matchup testing without saving",
+      "🟢 Emerald export buttons  -  both Battle Bot and Team Tester PDF export buttons now use an emerald-to-teal gradient with Sora font",
+      "🐛 Fixed VS badge overlap in Team Tester PDF  -  widened gap between team cards so the VS badge no longer overlaps either card",
+      "🐛 Fixed badge overlap in Battle Bot PDF  -  tier badge and win rate no longer overflow the team card when team names are long",
+      "⚡ Shortened Battle Bot PDF filename  -  now saves as 'ChampionsLab_BattleSimResult.pdf' instead of the long team name",
+      "🐛 Fixed Acrobatics damage calc  -  correctly applies 110 BP when holder has no item",
+      "🐛 Fixed items in damage calc  -  getAllItems() now properly returns all available items",
+      "🐛 Fixed Sucker Punch fail check  -  no longer fails against status moves incorrectly",
+      "🐛 Fixed Imposter + Intimidate  -  Ditto no longer fires copied Intimidate on entry",
+      "🐛 Fixed Choice Scarf move locking  -  Struggle fallback when locked into a disabled move",
+      "🐛 Fixed Pokepaste import gender bug  -  gender suffix (M)/(F) no longer breaks Pokémon name matching",
+      "🐛 Fixed damage calc percentage display  -  percentages now show correctly in all scenarios",
+      "🆕 2 new S-Tier curated teams by Illiterate Duck  -  Mega Floette Hyper Offense and Sand Bulky Offense added to meta teams and team builder",
+    ],
+  },
+  {
+    date: "13/04/2026",
+    items: [
+      "🧠 Fresh 2M battle engine simulation  -  re-ran the full ML simulation with 2,000,000 battles across 789 teams and 270 Pokémon, updating all engine-powered sections with fresh data",
+      "⚔️ Anti-Meta Teams now engine-generated  -  6 counter teams are now auto-built from simulation results using top anti-meta anchors and their best partners, replacing hand-written placeholders",
+      "📊 Anti-Meta Pokémon Rankings refreshed  -  15 anti-meta Pokémon rankings regenerated from new sim data with updated scores, counter matchups, and weaknesses",
+      "🔗 ML-Discovered Cores updated  -  top 50 core pairs refreshed from 2M battle simulation results",
+      "🏗️ ML Archetype Rankings updated  -  50 archetype rankings recalculated from fresh simulation ELO and win rates",
+    ],
+  },
   {
     date: "12/04/2026",
     items: [
@@ -255,6 +325,7 @@ const CHANGELOGS: Record<string, { description: string; entries: ChangelogEntry[
 
 export function LastUpdated({ page }: { page: keyof typeof CHANGELOGS }) {
   const [open, setOpen] = useState(false);
+  const { t } = useI18n();
   const data = CHANGELOGS[page];
   if (!data) return null;
   const latestDate = data.entries[0]?.date ?? "29/03/2026";
@@ -266,7 +337,7 @@ export function LastUpdated({ page }: { page: keyof typeof CHANGELOGS }) {
         className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 hover:border-emerald-300 dark:hover:border-emerald-500/30 transition-all group"
       >
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-        Last updated {latestDate}
+        {t('changelog.lastUpdated', { date: latestDate })}
         <ArrowUpRight className="w-3 h-3 text-emerald-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
       </button>
 
@@ -289,14 +360,14 @@ export function LastUpdated({ page }: { page: keyof typeof CHANGELOGS }) {
               <div className="p-5 border-b border-gray-100 dark:border-gray-200/10 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-emerald-500" />
-                  <h3 className="text-lg font-bold">What&apos;s New</h3>
+                  <h3 className="text-lg font-bold">{t('changelog.whatsNew')}</h3>
                 </div>
                 <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-200/10 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
               <div className="p-5 max-h-[60vh] overflow-y-auto space-y-4">
-                <p className="text-sm text-muted-foreground">{data.description}</p>
+                <p className="text-sm text-muted-foreground">{t('changelog.description')}</p>
                 {data.entries.map((entry) => (
                   <div key={entry.date}>
                     <div className="flex items-center gap-2 mb-2">

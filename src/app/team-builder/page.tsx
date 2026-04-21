@@ -8,7 +8,7 @@ import {
   Plus, X, Download, Upload, Copy, Trash2, Shield, Zap,
   ChevronDown, ChevronUp, Check, AlertTriangle, Sparkles, Star,
   Users, Brain, Target, Award, Minus, Settings2,
-  Save, FolderOpen, Share2, SlidersHorizontal,
+  Save, FolderOpen, Share2, SlidersHorizontal, ExternalLink,
 } from "lucide-react";
 import { POKEMON_SEED, STAT_PRESETS } from "@/lib/pokemon-data";
 import {
@@ -50,6 +50,7 @@ import {
 } from "@/lib/simulation-data";
 import { deflateRaw, inflateRaw } from "pako";
 import QRCode from "qrcode";
+import { useI18n } from "@/lib/i18n";
 
 const EMPTY_STAT_POINTS: StatPoints = { hp: 0, attack: 0, defense: 0, spAtk: 0, spDef: 0, speed: 0 };
 const MAX_TOTAL_POINTS = 66;
@@ -119,6 +120,85 @@ const ALL_TYPES: PokemonType[] = [
 ];
 
 export default function TeamBuilderPage() {
+  const { locale, t, tp, tm, ta, ti, tn, ts, tt, tad, tid } = useI18n();
+
+  // ── Analysis text translators ──
+  const RATING_KEYS: Record<string, string> = {
+    "Empty": "empty", "In Progress": "inProgress", "Excellent": "excellent",
+    "Strong": "strong", "Decent": "decent", "Needs Work": "needsWork", "Weak": "weak",
+  };
+  const tRating = (r: string) => t("teamBuilder.ratings." + (RATING_KEYS[r] ?? "empty"));
+  const tArchetype = (a: string) => t("teamBuilder.archetypeNames." + a) || a.replace(/-/g, " ");
+  const tFullType = (type: string) => t("common.types." + type.toLowerCase());
+  const translateInsight = (s: string): string => {
+    // Fixed strings
+    const FIXED: Record<string, string> = {
+      "Excellent offensive type coverage": "excellentCoverage",
+      "Strong defensive type synergy": "strongDefSynergy",
+      "Has speed control options": "hasSpeedControl",
+      "Intimidate support available": "intimidateSupport",
+      "Has redirection support": "hasRedirection",
+      "Priority moves for endgame": "priorityMoves",
+      "No speed control - vulnerable to faster teams": "noSpeedControl",
+      "Lacks fast options to pressure opponents": "lacksFast",
+      "No dedicated support Pokémon": "noSupport",
+      "No Intimidate to weaken physical attackers": "noIntimidate",
+      "Add a Tailwind or Trick Room user for speed control": "addSpeedControl",
+      "Consider adding an Intimidate user (Incineroar, Gyarados)": "addIntimidate",
+      "Add a priority move user for endgame situations": "addPriority",
+      "No speed control - add Tailwind or Trick Room user": "noSpeedControlThreat",
+      "No Intimidate - consider adding an Intimidate user": "noIntimidateThreat",
+    };
+    if (FIXED[s]) return t("teamBuilder.insights." + FIXED[s]);
+    // Dynamic patterns
+    let m;
+    if ((m = s.match(/^Clear (.+) game plan$/))) return t("teamBuilder.insights.clearGamePlan", { archetype: tArchetype(m[1]) });
+    if ((m = s.match(/^(\d+) Pokémon weak to (.+)$/))) return t("teamBuilder.insights.weakToType", { count: m[1], type: tFullType(m[2]) });
+    if ((m = s.match(/^Can't hit (.+) types super effectively$/))) return t("teamBuilder.insights.cantHit", { types: m[1].split("/").map(tFullType).join("/") });
+    if ((m = s.match(/^Add coverage for (.+) types$/))) return t("teamBuilder.insights.addCoverage", { types: m[1].split(" and ").map(tFullType).join(" / ") });
+    if ((m = s.match(/^Reduce (.+) weakness/))) return t("teamBuilder.insights.reduceWeakness", { type: tFullType(m[1]) });
+    if ((m = s.match(/^Team needs (\d+) more/))) return t("teamBuilder.insights.needMore", { n: m[1] });
+    if ((m = s.match(/^Critical weakness to (.+) - /))) return t("teamBuilder.insights.criticalTo", { types: m[1].split(", ").map(tFullType).join(", ") });
+    if ((m = s.match(/^Poor coverage - no super effective hits vs (.+)$/))) return t("teamBuilder.insights.poorCoverage", { types: m[1].split(", ").map(tFullType).join(", ") });
+    return s;
+  };
+  const translateReason = (s: string): string => {
+    if (s === "Strong starting pick") return t("common.suggestions.strongStartingPick");
+    if (s === "Great defensive type synergy") return t("common.suggestions.greatDefSynergy");
+    let m;
+    if ((m = s.match(/^Covers (.+) weaknesses$/))) return t("common.suggestions.coversWeaknesses", { types: m[1].split("/").map(tFullType).join("/") });
+    if ((m = s.match(/^Fills missing (.+) role$/))) return t("common.suggestions.fillsRole", { role: t("common.roles." + m[1].replace(/ /g, "-")) });
+    return s;
+  };
+  const translateSetName = (name: string): string => {
+    const words = t("common.setWords." + name);
+    if (words !== "common.setWords." + name) return words;
+    // Word-level translation for compound names
+    const SET_WORDS = [
+      "Specially Defensive", "Trick Room", "Choice Band", "Choice Scarf", "Choice Specs",
+      "Assault Vest", "Life Orb", "Focus Sash", "Swords Dance", "Nasty Plot", "Calm Mind",
+      "Dragon Dance", "Shell Smash", "Quiver Dance", "Belly Drum",
+      "Sweeper", "Attacker", "Tank", "Support", "Lead", "Wall", "Setter", "Pivot",
+      "Bulky", "Offensive", "Physical", "Special", "Mixed", "Fast", "Defensive",
+      "Supportive", "Counter", "Sun", "Rain", "Sand", "Snow", "Hail", "Tailwind", "Mega",
+    ];
+    let result = name;
+    for (const w of SET_WORDS) {
+      const tr = t("common.setWords." + w);
+      if (tr !== "common.setWords." + w) {
+        result = result.replace(new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, "g"), tr);
+      }
+    }
+    return result;
+  };
+  const translateNatureReason = (reason: string): string => {
+    let m;
+    if ((m = reason.match(/^Most used competitively \((\d+)%\)$/))) return t("common.natureReasons.mostUsed", { pct: m[1] });
+    if (reason === "Based on base stats") return t("common.natureReasons.basedOnStats");
+    if ((m = reason.match(/^From (.+) build$/))) return t("common.spReasons.fromBuild", { name: translateSetName(m[1]) });
+    if (reason === "Default offensive spread") return t("common.spReasons.defaultSpread");
+    return reason;
+  };
   const [slots, setSlots] = useState<TeamSlot[]>(
     Array.from({ length: 6 }, createEmptySlot)
   );
@@ -128,9 +208,7 @@ export default function TeamBuilderPage() {
   const [pickerSearch, setPickerSearch] = useState("");
   const [pickerTypeFilter, setPickerTypeFilter] = useState<PokemonType | null>(null);
   const [pickerStatFilters, setPickerStatFilters] = useState({ hp: 0, attack: 0, defense: 0, spAtk: 0, spDef: 0, speed: 0, bst: 0 });
-  const [showStatFilters, setShowStatFilters] = useState(
-    typeof window !== "undefined" ? window.innerWidth >= 640 : false
-  );
+  const [showStatFilters, setShowStatFilters] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState("");
@@ -145,14 +223,20 @@ export default function TeamBuilderPage() {
   const [shuffledTeams, setShuffledTeams] = useState<PrebuiltTeam[]>([]);
   const [showShare, setShowShare] = useState(false);
   const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
+  const [shareLinkError, setShareLinkError] = useState<string | null>(null);
   const [showMoreTournament, setShowMoreTournament] = useState(false);
   const [showMoreCurated, setShowMoreCurated] = useState(false);
+  const [pasteHideNature, setPasteHideNature] = useState(false);
+  const [pasteHideStatPoints, setPasteHideStatPoints] = useState(false);
+  const [pasteHideItem, setPasteHideItem] = useState(false);
+  const [pasteHideAbility, setPasteHideAbility] = useState(false);
+  const [pasteLinkCopied, setPasteLinkCopied] = useState(false);
 
   // Tournament teams filtered to active roster, sorted by placement
   const tournamentTeams = useMemo(() => {
     const validIds = new Set(POKEMON_SEED.filter(p => !p.hidden).map(p => p.id));
     return CHAMPIONS_TOURNAMENT_TEAMS
-      .filter(t => t.pokemonIds.every(id => validIds.has(id)))
+      .filter(tm => tm.pokemonIds.every(id => validIds.has(id)))
       .sort((a, b) => a.placement - b.placement || b.players - a.players);
   }, []);
 
@@ -221,16 +305,19 @@ export default function TeamBuilderPage() {
         preMegaAbility: s.pa,
       }));
       setSlots(deserializeTeam(restored));
-      setTeamName(data.n || "Shared Team");
+      setTeamName(data.n || t('teamBuilder.sharedTeam'));
       window.history.replaceState({}, "", "/team-builder");
     };
 
     // Short link: fetch from API
     if (shortId) {
       fetch(`/api/share/${encodeURIComponent(shortId)}`)
-        .then(r => r.ok ? r.json() : null)
+        .then(r => {
+          if (!r.ok) { setShareLinkError(t('teamBuilder.sharedExpired')); window.history.replaceState({}, "", "/team-builder"); return null; }
+          return r.json();
+        })
         .then(data => { if (data?.s) restoreTeam(data); })
-        .catch(() => {});
+        .catch(() => { setShareLinkError(t('teamBuilder.sharedFailed')); window.history.replaceState({}, "", "/team-builder"); });
       return;
     }
 
@@ -273,14 +360,14 @@ export default function TeamBuilderPage() {
       if (!s.pokemon) return;
 
       if (seenDexNumbers.has(s.pokemon.dexNumber)) {
-        errors.push(`Duplicate Pokémon: ${s.pokemon.name}`);
+        errors.push(`${t('teamBuilder.duplicatePokemon')} ${tp(s.pokemon.name)}`);
       }
       seenDexNumbers.add(s.pokemon.dexNumber);
 
       const item = s.item?.trim();
       if (item) {
         if (seenItems.has(item)) {
-          errors.push(`Duplicate item: ${item}`);
+          errors.push(`${t('teamBuilder.duplicateItem')} ${item}`);
         }
         seenItems.add(item);
       }
@@ -353,10 +440,18 @@ export default function TeamBuilderPage() {
     for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
     for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
 
-    // Header LEFT - Team name + subtitle
+    // Header LEFT - Team name + subtitle (ellipsize if too long)
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 38px Inter, system-ui, sans-serif";
-    ctx.fillText(teamName, 40, 55);
+    const maxTitleWidth = W - 660; // leave room for QR + logo + brand on right
+    let titleText = teamName;
+    if (ctx.measureText(titleText).width > maxTitleWidth) {
+      while (titleText.length > 1 && ctx.measureText(titleText + "…").width > maxTitleWidth) {
+        titleText = titleText.slice(0, -1);
+      }
+      titleText = titleText.trimEnd() + "…";
+    }
+    ctx.fillText(titleText, 40, 55);
 
     ctx.font = "15px Inter, system-ui, sans-serif";
     ctx.fillStyle = "rgba(255,255,255,0.55)";
@@ -439,11 +534,14 @@ export default function TeamBuilderPage() {
       ctx.fillStyle = "rgba(255,255,255,0.5)";
       ctx.font = "bold 8px Inter, system-ui, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("SCAN TO IMPORT", qrX + qrSize / 2, qrY + qrSize + 10);
+      ctx.fillText(t('teamBuilder.scanToImport').toUpperCase(), qrX + qrSize / 2, qrY + qrSize + 10);
     }
     ctx.textAlign = "left";
 
     // Load sprites as images (use mega sprite if slot is mega)
+    // Strip CDN prefix so sprites load from same origin (avoids CORS issues with canvas)
+    const cdnPrefix = process.env.NEXT_PUBLIC_SPRITE_CDN || "";
+    const toLocalUrl = (url: string) => cdnPrefix && url.startsWith(cdnPrefix) ? url.slice(cdnPrefix.length) : url;
     const spritePromises = filled.map(s => {
       const megaForms = s.pokemon!.forms?.filter(f => f.isMega && !f.hidden) ?? [];
       const megaSprite = s.isMega && megaForms[s.megaFormIndex ?? 0]
@@ -454,7 +552,7 @@ export default function TeamBuilderPage() {
         img.crossOrigin = "anonymous";
         img.onload = () => resolve(img);
         img.onerror = () => resolve(null);
-        img.src = megaSprite;
+        img.src = toLocalUrl(megaSprite);
       });
     });
     const sprites = await Promise.all(spritePromises);
@@ -492,7 +590,7 @@ export default function TeamBuilderPage() {
         ctx.fillStyle = "rgba(255,255,255,0.6)";
         const itemStart = x + 110 + nameWidth + 10;
         const maxItemWidth = x + 395 - itemStart; // stop before type badges
-        let itemText = `@ ${s.item}`;
+        let itemText = `@ ${ti(s.item)}`;
         if (maxItemWidth > 30 && ctx.measureText(itemText).width > maxItemWidth) {
           while (itemText.length > 3 && ctx.measureText(itemText + "…").width > maxItemWidth) {
             itemText = itemText.slice(0, -1);
@@ -506,9 +604,9 @@ export default function TeamBuilderPage() {
       ctx.font = "15px Inter, system-ui, sans-serif";
       ctx.fillStyle = "rgba(255,255,255,0.8)";
       const abilityText = s.isMega && s.preMegaAbility
-        ? `${s.preMegaAbility} → ${s.ability}`
-        : s.ability;
-      const info = [s.nature && `${s.nature} Nature`, abilityText].filter(Boolean).join(" · ");
+        ? `${ta(s.preMegaAbility)} → ${ta(s.ability)}`
+        : ta(s.ability);
+      const info = [s.nature && `${tn(s.nature)} Nature`, abilityText].filter(Boolean).join(" · ");
       ctx.fillText(info, x + 110, y + 72);
 
       // Moves
@@ -521,7 +619,7 @@ export default function TeamBuilderPage() {
         ctx.roundRect(mx, my - 14, 140, 22, 6);
         ctx.fill();
         ctx.fillStyle = "rgba(255,255,255,0.9)";
-        ctx.fillText(`• ${m}`, mx + 6, my);
+        ctx.fillText(`• ${tm(m)}`, mx + 6, my);
       });
 
       // Stat Points summary
@@ -530,12 +628,12 @@ export default function TeamBuilderPage() {
       if (totalSP > 0) {
         ctx.font = "14px Inter, system-ui, sans-serif";
         ctx.fillStyle = "rgba(255,255,255,0.7)";
-        const spText = STAT_KEYS.filter(k => sp[k] > 0).map(k => `${sp[k]} ${STAT_LABELS[k]}`).join(" / ");
+        const spText = STAT_KEYS.filter(k => sp[k] > 0).map(k => `${sp[k]} ${ts(k)}`).join(" / ");
         ctx.fillText(spText, x + 110, y + 158);
       }
 
       // Type badges
-      p.types.forEach((t, ti) => {
+      p.types.forEach((ty, ti) => {
         const tx = x + 400 + ti * 60;
         const colors: Record<string, string> = {
           fire: "#ef4444", water: "#3b82f6", grass: "#22c55e", electric: "#eab308",
@@ -544,14 +642,14 @@ export default function TeamBuilderPage() {
           flying: "#93c5fd", bug: "#84cc16", rock: "#78716c", ghost: "#6d28d9",
           steel: "#94a3b8", normal: "#a1a1aa",
         };
-        ctx.fillStyle = colors[t] || "#888";
+        ctx.fillStyle = colors[ty] || "#888";
         ctx.beginPath();
         ctx.roundRect(tx, y + 30, 52, 22, 8);
         ctx.fill();
         ctx.fillStyle = "#fff";
         ctx.font = "bold 10px Inter, system-ui, sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText(t.toUpperCase(), tx + 26, y + 45);
+        ctx.fillText(ty.toUpperCase(), tx + 26, y + 45);
         ctx.textAlign = "left";
       });
     });
@@ -561,7 +659,7 @@ export default function TeamBuilderPage() {
     ctx.fillRect(0, H - footerH, W, footerH);
     ctx.fillStyle = "rgba(255,255,255,0.3)";
     ctx.font = "13px Inter, system-ui, sans-serif";
-    ctx.fillText("Built with Champions Lab · championslab.xyz", 40, H - 22);
+    ctx.fillText(`${t('teamBuilder.builtWith')} Champions Lab · championslab.xyz`, 40, H - 22);
 
     ctx.fillStyle = "#8b5cf6";
     ctx.font = "bold 16px Inter, system-ui, sans-serif";
@@ -586,6 +684,8 @@ export default function TeamBuilderPage() {
 
   const [shareUrl, setShareUrl] = useState("");
   const [urlCopied, setUrlCopied] = useState(false);
+  const [pasteUrl, setPasteUrl] = useState("");
+  const [pasteGenerating, setPasteGenerating] = useState(false);
 
   const copyShareUrl = async () => {
     trackEvent("copy_share_url", "team_builder", teamName);
@@ -593,6 +693,56 @@ export default function TeamBuilderPage() {
     await navigator.clipboard.writeText(shareUrl);
     setUrlCopied(true);
     setTimeout(() => setUrlCopied(false), 2000);
+  };
+
+  // Build a secure paste URL: creates a NEW share entry with hidden fields stripped
+  const buildPasteUrl = async () => {
+    const filled = slots.filter(s => s.pokemon);
+    if (filled.length === 0) return "";
+    const data = {
+      n: teamName,
+      s: serializeTeam(slots).map(s => ({
+        p: s.pokemonId,
+        a: pasteHideAbility ? undefined : s.ability,
+        t: pasteHideNature ? undefined : s.nature,
+        m: s.moves,
+        sp: pasteHideStatPoints ? [0, 0, 0, 0, 0, 0] : [s.statPoints.hp, s.statPoints.attack, s.statPoints.defense, s.statPoints.spAtk, s.statPoints.spDef, s.statPoints.speed],
+        i: pasteHideItem ? undefined : s.item,
+        mg: s.isMega,
+        pa: s.preMegaAbility,
+      })),
+    };
+    try {
+      const res = await fetch("/api/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const { id } = await res.json();
+        return `${window.location.origin}/paste?s=${id}`;
+      }
+    } catch { /* fall through to compressed fallback */ }
+    // Fallback: compressed URL
+    const compressed = deflateRaw(JSON.stringify(data));
+    const b64 = btoa(String.fromCharCode(...compressed))
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    return `${window.location.origin}/paste?t=${b64}`;
+  };
+
+  // Regenerate paste URL when hide options change
+  useEffect(() => {
+    if (!shareUrl) { setPasteUrl(""); return; }
+    setPasteGenerating(true);
+    buildPasteUrl().then(url => { setPasteUrl(url); setPasteGenerating(false); });
+  }, [pasteHideNature, pasteHideStatPoints, pasteHideItem, pasteHideAbility, shareUrl]);
+
+  const copyPasteUrl = async () => {
+    trackEvent("copy_paste_url", "team_builder", teamName);
+    if (!pasteUrl) return;
+    await navigator.clipboard.writeText(pasteUrl);
+    setPasteLinkCopied(true);
+    setTimeout(() => setPasteLinkCopied(false), 2000);
   };
 
   const filledSlots = slots.filter((s) => s.pokemon !== null);
@@ -842,7 +992,7 @@ export default function TeamBuilderPage() {
     setPickerSearch("");
     setPickerTypeFilter(null);
     setPickerStatFilters({ hp: 0, attack: 0, defense: 0, spAtk: 0, spDef: 0, speed: 0, bst: 0 });
-    setShowStatFilters(window.innerWidth >= 640);
+    setShowStatFilters(false);
     setShowPokemonPicker(true);
   };
 
@@ -939,7 +1089,17 @@ export default function TeamBuilderPage() {
 
   const matchesPokemonName = (pokemon: ChampionsPokemon, name: string): boolean => {
     const candidate = name.toLowerCase();
-    return pokemon.name.toLowerCase() === candidate || pokemon.showdownName?.toLowerCase() === candidate;
+    if (pokemon.name.toLowerCase() === candidate || pokemon.showdownName?.toLowerCase() === candidate) return true;
+    // Showdown regional forms: "Samurott-Hisui" → "Hisuian Samurott", "Ninetales-Alola" → "Alolan Ninetales", etc.
+    const regionalSuffixes: Record<string, string> = { hisui: "Hisuian", alola: "Alolan", galar: "Galarian", paldea: "Paldean" };
+    const dashIdx = candidate.lastIndexOf("-");
+    if (dashIdx > 0) {
+      const base = candidate.slice(0, dashIdx);
+      const suffix = candidate.slice(dashIdx + 1);
+      const prefix = regionalSuffixes[suffix];
+      if (prefix && pokemon.name.toLowerCase() === `${prefix.toLowerCase()} ${base}`) return true;
+    }
+    return false;
   };
 
   // Import from Pokepaste format
@@ -947,7 +1107,7 @@ export default function TeamBuilderPage() {
     trackEvent("import_pokepaste", "team_builder");
     const isMegaItem = (item: string) => item.endsWith("ite") || item.endsWith("ite X") || item.endsWith("ite Y") || item.endsWith("ite Z");
     const blocks = text.trim().split(/\n\n+/).filter(Boolean);
-    if (blocks.length === 0) { setImportError("No Pokémon found in the paste."); return; }
+    if (blocks.length === 0) { setImportError(t('teamBuilder.noPokemonInPaste')); return; }
     const newSlots: TeamSlot[] = [];
     for (const block of blocks.slice(0, 6)) {
       const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
@@ -961,11 +1121,11 @@ export default function TeamBuilderPage() {
         pokeName = parts[0].trim();
         item = parts[1].trim();
       }
+      // Strip gender suffix first (before nickname check, so "(F)" doesn't get mistaken for species)
+      pokeName = pokeName.replace(/\s*\((?:M|F)\)\s*$/, "").trim();
       // Handle nicknamed Pokémon: "Nickname (Species)"
       const parenMatch = pokeName.match(/\((.+?)\)/);
       if (parenMatch) pokeName = parenMatch[1].trim();
-      // Strip gender suffix
-      pokeName = pokeName.replace(/\s*\((?:M|F)\)\s*$/, "").trim();
       // Handle Showdown mega suffixes: "Charizard-Mega-X" → "Charizard", "Lucario-Mega" → "Lucario"
       let showdownMegaSuffix: string | null = null;
       const megaXY = pokeName.match(/^(.+)-Mega-([XY])$/i);
@@ -1061,7 +1221,7 @@ export default function TeamBuilderPage() {
         megaFormIndex,
       });
     }
-    if (newSlots.length === 0) { setImportError("Could not match any Pokémon names. Make sure it's in Pokepaste/Showdown format."); return; }
+    if (newSlots.length === 0) { setImportError(t('teamBuilder.couldNotMatch')); return; }
     while (newSlots.length < 6) newSlots.push(createEmptySlot());
     setSlots(newSlots);
     setCurrentTeamId(undefined);
@@ -1079,6 +1239,14 @@ export default function TeamBuilderPage() {
         const p = s.pokemon!;
         // Use Showdown mega naming for mega Pokemon (e.g., Charizard-Mega-Y)
         let exportName = p.showdownName ?? p.name;
+        // Convert regional prefix to Showdown suffix: "Hisuian Samurott" → "Samurott-Hisui"
+        const regionalPrefixes: Record<string, string> = { hisuian: "Hisui", alolan: "Alola", galarian: "Galar", paldean: "Paldea" };
+        for (const [prefix, suffix] of Object.entries(regionalPrefixes)) {
+          if (exportName.toLowerCase().startsWith(prefix + " ")) {
+            exportName = `${exportName.slice(prefix.length + 1)}-${suffix}`;
+            break;
+          }
+        }
         if (s.isMega && p.hasMega) {
           const megaForms = p.forms?.filter(f => f.isMega && !f.hidden) ?? [];
           if (megaForms.length > 1) {
@@ -1128,13 +1296,14 @@ export default function TeamBuilderPage() {
       const q = pickerSearch.toLowerCase();
       return (
         p.name.toLowerCase().includes(q) ||
-        p.types.some((t) => t.includes(q)) ||
-        p.abilities.some((a) => a.name.toLowerCase().includes(q)) ||
-        p.moves.some((m) => m.name.toLowerCase().includes(q)) ||
-        (p.hasMega && p.forms?.some((f) => f.isMega && f.abilities.some((a) => a.name.toLowerCase().includes(q))))
+        tp(p.name).toLowerCase().includes(q) ||
+        p.types.some((ty) => ty.includes(q) || t(`common.types.${ty}`).toLowerCase().includes(q)) ||
+        p.abilities.some((a) => a.name.toLowerCase().includes(q) || ta(a.name).toLowerCase().includes(q)) ||
+        p.moves.some((m) => m.name.toLowerCase().includes(q) || tm(m.name).toLowerCase().includes(q)) ||
+        (p.hasMega && p.forms?.some((f) => f.isMega && f.abilities.some((a) => a.name.toLowerCase().includes(q) || ta(a.name).toLowerCase().includes(q))))
       );
     });
-  }, [pickerSearch, pickerTypeFilter, pickerStatFilters, usedPokemonIds]);
+  }, [pickerSearch, pickerTypeFilter, pickerStatFilters, usedPokemonIds, tp, tm, ta, t]);
 
   return (
     <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-x-hidden">
@@ -1149,16 +1318,16 @@ export default function TeamBuilderPage() {
             <div className="shrink-0">
               <h1 className="text-3xl font-bold">
                 <span className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 bg-clip-text text-transparent">
-                  Team Builder
+                  {t('teamBuilder.title')}
                 </span>
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Build your team. Click a slot to customize moves, nature, items &amp; EVs.
+                {t('teamBuilder.description')}
               </p>
               <div className="flex items-center gap-2 mt-1.5">
                 <a href="/battle-bot" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider bg-gradient-to-r from-amber-400/15 to-yellow-500/15 border border-amber-400/30 text-amber-700 hover:border-amber-400/50 transition-all">
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                  Powered by 2M+ Battle Engine
+                  {t('teamBuilder.poweredBy')}
                 </a>
                 <LastUpdated page="team-builder" />
               </div>
@@ -1178,7 +1347,7 @@ export default function TeamBuilderPage() {
               className="px-5 py-2 text-sm rounded-xl font-semibold flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-105 transition-all disabled:opacity-40 disabled:hover:scale-100 shrink-0"
             >
               <Share2 className="w-4 h-4" />
-              Share
+              {t('common.share')}
             </button>
             <button
               onClick={handleSaveTeam}
@@ -1191,35 +1360,35 @@ export default function TeamBuilderPage() {
               )}
             >
               {saveConfirm ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-              {saveConfirm ? "Saved!" : "Save"}
+              {saveConfirm ? t('common.saved') : t('common.save')}
             </button>
             <button
               onClick={() => setShowSavedTeams(!showSavedTeams)}
               className="px-4 py-2 text-sm rounded-xl glass glass-hover flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors shrink-0"
             >
               <FolderOpen className="w-4 h-4" />
-              My Teams / Load
+              {t('teamBuilder.myTeamsLoad')}
             </button>
             <button
               onClick={() => { setShowImport(true); setImportText(""); setImportError(""); }}
               className="px-4 py-2 text-sm rounded-xl glass glass-hover flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors shrink-0"
             >
-              <Upload className="w-4 h-4" />
-              Import
+              <Download className="w-4 h-4" />
+              {t('common.import')}
             </button>
             <button
               onClick={() => setShowExport(true)}
               className="px-4 py-2 text-sm rounded-xl glass glass-hover flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors shrink-0"
             >
-              <Download className="w-4 h-4" />
-              Export
+              <Upload className="w-4 h-4" />
+              {t('common.export')}
             </button>
             <button
-              onClick={() => { trackEvent("new_team", "team_builder"); setSlots(Array.from({ length: 6 }, createEmptySlot)); setCurrentTeamId(undefined); setSelectedSlotIndex(null); setTeamName("My Team"); }}
+              onClick={() => { trackEvent("new_team", "team_builder"); setSlots(Array.from({ length: 6 }, createEmptySlot)); setCurrentTeamId(undefined); setSelectedSlotIndex(null); setTeamName(t('teamBuilder.myTeam')); }}
               className="px-4 py-2 text-sm rounded-xl glass glass-hover flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors shrink-0"
             >
               <Trash2 className="w-4 h-4" />
-              New Team / Clear
+              {t('teamBuilder.newTeamClear')}
             </button>
           </div>
         </div>
@@ -1237,20 +1406,20 @@ export default function TeamBuilderPage() {
             <div className="glass rounded-2xl p-4 border border-gray-200/60">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
                 <FolderOpen className="w-4 h-4" />
-                Saved Teams
+                {t('teamBuilder.savedTeams')}
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
-                {[...savedTeams].sort((a, b) => b.updatedAt - a.updatedAt).map(t => (
-                  <div key={t.id} className="flex items-center gap-2 p-3 rounded-xl glass glass-hover">
+                {[...savedTeams].sort((a, b) => b.updatedAt - a.updatedAt).map(st => (
+                  <div key={st.id} className="flex items-center gap-2 p-3 rounded-xl glass glass-hover">
                     <button
-                      onClick={() => handleLoadSavedTeam(t)}
+                      onClick={() => handleLoadSavedTeam(st)}
                       className="flex-1 text-left min-w-0"
                     >
-                      <p className="text-xs font-medium truncate">{t.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{t.slots.length} Pokémon · {new Date(t.updatedAt).toLocaleDateString()} {new Date(t.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+                      <p className="text-xs font-medium truncate">{st.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{st.slots.length} Pokémon · {new Date(st.updatedAt).toLocaleDateString()} {new Date(st.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
                     </button>
                     <button
-                      onClick={() => handleDeleteSavedTeam(t.id)}
+                      onClick={() => handleDeleteSavedTeam(st.id)}
                       className="p-1 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600 transition-colors flex-shrink-0"
                     >
                       <Trash2 className="w-3 h-3" />
@@ -1265,8 +1434,23 @@ export default function TeamBuilderPage() {
 
       {showSavedTeams && savedTeams.length === 0 && (
         <div className="mb-6 p-4 rounded-xl bg-gray-50 text-center">
-          <p className="text-sm text-muted-foreground">No saved teams yet. Build a team and click Save!</p>
+          <p className="text-sm text-muted-foreground">{t('teamBuilder.noSavedTeams')}</p>
         </div>
+      )}
+
+      {/* Shared link error */}
+      {shareLinkError && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between"
+        >
+          <div className="flex items-center gap-2 text-sm text-amber-400">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            {shareLinkError}
+          </div>
+          <button onClick={() => setShareLinkError(null)} className="text-amber-400/60 hover:text-amber-400 text-xs ml-4">{t('common.dismiss')}</button>
+        </motion.div>
       )}
 
       {/* Validation errors */}
@@ -1294,7 +1478,7 @@ export default function TeamBuilderPage() {
           {filledSlots.length >= 1 && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-5 border border-gray-200/60">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Brain className="w-4 h-4 text-emerald-500" /> Team Analysis
+                <Brain className="w-4 h-4 text-emerald-500" /> {t('teamBuilder.teamAnalysis')}
               </h3>
               <div className="flex items-center gap-3 mb-3">
                 <div className="relative w-14 h-14 flex-shrink-0">
@@ -1305,16 +1489,16 @@ export default function TeamBuilderPage() {
                   <span className="absolute inset-0 flex items-center justify-center text-sm font-bold">{teamAnalysis.synergy.overallScore}</span>
                 </div>
                 <div>
-                  <p className="text-base font-semibold">{teamAnalysis.overallRating}</p>
-                  <p className="text-xs text-muted-foreground">{filledSlots.length}/6 Pokémon</p>
+                  <p className="text-base font-semibold">{tRating(teamAnalysis.overallRating)}</p>
+                  <p className="text-xs text-muted-foreground">{t('teamBuilder.teamCount', { n: filledSlots.length })}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 mb-3">
                 {[
-                  { label: "Types", value: teamAnalysis.synergy.typeScore, icon: Shield },
-                  { label: "Speed", value: teamAnalysis.synergy.speedScore, icon: Zap },
-                  { label: "Roles", value: teamAnalysis.synergy.roleScore, icon: Users },
-                  { label: "Archetype", value: teamAnalysis.synergy.archetypeScore, icon: Target },
+                  { label: t('teamBuilder.typesTab'), value: teamAnalysis.synergy.typeScore, icon: Shield },
+                  { label: t('teamBuilder.speedTab'), value: teamAnalysis.synergy.speedScore, icon: Zap },
+                  { label: t('teamBuilder.rolesTab'), value: teamAnalysis.synergy.roleScore, icon: Users },
+                  { label: t('teamBuilder.archetypeTab'), value: teamAnalysis.synergy.archetypeScore, icon: Target },
                 ].map(({ label, value, icon: Icon }) => (
                   <div key={label} className="text-center p-1.5 rounded-lg bg-gray-50">
                     <Icon className="w-3 h-3 mx-auto text-muted-foreground mb-0.5" />
@@ -1326,29 +1510,29 @@ export default function TeamBuilderPage() {
               {teamAnalysis.synergy.detectedArchetypes.length > 0 && (
                 <div className="mb-2">
                   <div className="flex flex-wrap gap-1">
-                    {teamAnalysis.synergy.detectedArchetypes.map(a => <span key={a.archetype} className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-emerald-100 text-emerald-700 capitalize">{a.archetype.replace(/-/g, " ")} ({Math.round(a.confidence * 100)}%)</span>)}
+                    {teamAnalysis.synergy.detectedArchetypes.map(a => <span key={a.archetype} className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-emerald-100 text-emerald-700 capitalize">{tArchetype(a.archetype)} ({Math.round(a.confidence * 100)}%)</span>)}
                   </div>
                 </div>
               )}
               <div className="space-y-2 mb-2">
                 {teamAnalysis.synergy.strengths.length > 0 && (
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase mb-1">Strengths</p>
-                    {teamAnalysis.synergy.strengths.map((s, i) => <p key={i} className="text-[11px] text-green-700 flex items-start gap-1"><Check className="w-3 h-3 flex-shrink-0 mt-0.5" /> {s}</p>)}
+                    <p className="text-[10px] text-muted-foreground uppercase mb-1">{t('teamBuilder.strengths')}</p>
+                    {teamAnalysis.synergy.strengths.map((s, i) => <p key={i} className="text-[11px] text-green-700 flex items-start gap-1"><Check className="w-3 h-3 flex-shrink-0 mt-0.5" /> {translateInsight(s)}</p>)}
                   </div>
                 )}
                 {teamAnalysis.threatAnalysis.length > 0 && (
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase mb-1">Issues</p>
-                    {teamAnalysis.threatAnalysis.map((t, i) => <p key={i} className="text-[11px] text-amber-700 flex items-start gap-1"><AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" /> {t}</p>)}
+                    <p className="text-[10px] text-muted-foreground uppercase mb-1">{t('teamBuilder.issues')}</p>
+                    {teamAnalysis.threatAnalysis.map((thr, i) => <p key={i} className="text-[11px] text-amber-700 flex items-start gap-1"><AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" /> {translateInsight(thr)}</p>)}
                   </div>
                 )}
               </div>
               {teamAnalysis.criticalWeaknesses.length > 0 && (
                 <div className="p-2 rounded-lg bg-red-50 border border-red-100">
-                  <p className="text-[10px] text-red-600 font-medium uppercase mb-1">Critical Weaknesses</p>
+                  <p className="text-[10px] text-red-600 font-medium uppercase mb-1">{t('teamBuilder.criticalWeaknesses')}</p>
                   <div className="flex flex-wrap gap-1">
-                    {teamAnalysis.criticalWeaknesses.map(type => <span key={type} className="px-2 py-0.5 text-[10px] font-bold uppercase rounded text-white/90" style={{ backgroundColor: `${TYPE_COLORS[type]}CC` }}>{type}</span>)}
+                    {teamAnalysis.criticalWeaknesses.map(type => <span key={type} className="px-2 py-0.5 text-[10px] font-bold uppercase rounded text-white/90" style={{ backgroundColor: `${TYPE_COLORS[type]}CC` }}>{tFullType(type)}</span>)}
                   </div>
                 </div>
               )}
@@ -1359,7 +1543,7 @@ export default function TeamBuilderPage() {
           {filledSlots.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-5 border border-gray-200/60">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Shield className="w-4 h-4" /> Type Coverage
+                <Shield className="w-4 h-4" /> {t('teamBuilder.typeCoverage')}
               </h3>
               <div className="grid grid-cols-6 gap-1.5">
                 {ALL_TYPES.map((type) => {
@@ -1368,7 +1552,7 @@ export default function TeamBuilderPage() {
                   const resist = defensiveResists[type] ?? 0;
                   return (
                     <div key={type} className="text-center space-y-0.5">
-                      <span className="block w-full py-0.5 text-[7px] font-bold uppercase rounded text-white/90" style={{ backgroundColor: `${TYPE_COLORS[type]}AA` }}>{type.slice(0, 3)}</span>
+                      <span className="block w-full py-0.5 text-[7px] font-bold uppercase rounded text-white/90" style={{ backgroundColor: `${TYPE_COLORS[type]}AA` }}>{tt(type)}</span>
                       <span className={cn("block text-[10px] font-bold", se > 0 ? "text-green-600" : "text-muted-foreground/40")}>{se > 0 ? `${se}×` : " - "}</span>
                     </div>
                   );
@@ -1379,14 +1563,14 @@ export default function TeamBuilderPage() {
                 {/* Defensive Weaknesses */}
                 {(() => {
                   const weakTypes = ALL_TYPES
-                    .filter(t => (defensiveWeaknesses[t] ?? 0) > 0)
-                    .map(t => ({ type: t, weak: defensiveWeaknesses[t] ?? 0, resist: defensiveResists[t] ?? 0 }))
+                    .filter(ty => (defensiveWeaknesses[ty] ?? 0) > 0)
+                    .map(ty => ({ type: ty, weak: defensiveWeaknesses[ty] ?? 0, resist: defensiveResists[ty] ?? 0 }))
                     .sort((a, b) => (b.weak - b.resist) - (a.weak - a.resist));
                   if (weakTypes.length === 0) return null;
                   return (
                     <div>
                       <p className="text-[9px] text-muted-foreground uppercase mb-1.5 flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" /> Defensive Weaknesses
+                        <AlertTriangle className="w-3 h-3" /> {t('teamBuilder.defensiveWeaknesses')}
                       </p>
                       <div className="grid grid-cols-3 gap-1">
                         {weakTypes.map(({ type, weak, resist }) => {
@@ -1395,7 +1579,7 @@ export default function TeamBuilderPage() {
                           return (
                             <div key={type} className={cn("flex items-center gap-1 px-1.5 py-1 rounded-lg border", bg)}>
                               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: TYPE_COLORS[type] }} />
-                              <span className="text-[9px] font-semibold uppercase flex-1 truncate">{type}</span>
+                              <span className="text-[9px] font-semibold uppercase flex-1 truncate">{tFullType(type)}</span>
                               <span className="text-[9px] font-bold text-red-600 dark:text-red-400">{weak}↓</span>
                               {resist > 0 && <span className="text-[9px] font-bold text-green-600 dark:text-green-400">{resist}↑</span>}
                             </div>
@@ -1408,19 +1592,19 @@ export default function TeamBuilderPage() {
                 {/* Resistances & Immunities */}
                 {(() => {
                   const resistTypes = ALL_TYPES
-                    .filter(t => (defensiveResists[t] ?? 0) > 0 && (defensiveWeaknesses[t] ?? 0) === 0)
+                    .filter(ty => (defensiveResists[ty] ?? 0) > 0 && (defensiveWeaknesses[ty] ?? 0) === 0)
                     .sort((a, b) => (defensiveResists[b] ?? 0) - (defensiveResists[a] ?? 0));
                   if (resistTypes.length === 0) return null;
                   return (
                     <div>
                       <p className="text-[9px] text-muted-foreground uppercase mb-1.5 flex items-center gap-1">
-                        <Shield className="w-3 h-3" /> Resistances &amp; Immunities
+                        <Shield className="w-3 h-3" /> {t('teamBuilder.resistancesImmunities')}
                       </p>
                       <div className="grid grid-cols-3 gap-1">
                         {resistTypes.map(type => (
                           <div key={type} className="flex items-center gap-1 px-1.5 py-1 rounded-lg border bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
                             <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: TYPE_COLORS[type] }} />
-                            <span className="text-[9px] font-semibold uppercase flex-1 truncate">{type}</span>
+                            <span className="text-[9px] font-semibold uppercase flex-1 truncate">{tFullType(type)}</span>
                             <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400">{defensiveResists[type]}↑</span>
                           </div>
                         ))}
@@ -1430,18 +1614,18 @@ export default function TeamBuilderPage() {
                 })()}
                 {/* Blind Spots - types the team can't hit super-effectively */}
                 {(() => {
-                  const uncovered = ALL_TYPES.filter(t => (offensiveCoverage[t] ?? 0) === 0);
+                  const uncovered = ALL_TYPES.filter(ty => (offensiveCoverage[ty] ?? 0) === 0);
                   if (uncovered.length === 0) return null;
                   return (
                     <div>
                       <p className="text-[9px] text-muted-foreground uppercase mb-1.5 flex items-center gap-1">
-                        <Target className="w-3 h-3" /> Blind Spots
+                        <Target className="w-3 h-3" /> {t('teamBuilder.blindSpots')}
                       </p>
                       <div className="grid grid-cols-3 gap-1">
                         {uncovered.map(type => (
-                          <div key={type} className="flex items-center gap-1 px-1.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50">
-                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: TYPE_COLORS[type] }} />
-                            <span className="text-[9px] font-semibold uppercase text-gray-500 dark:text-gray-300 truncate">{type}</span>
+                          <div key={type} className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06]">
+                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: TYPE_COLORS[type] }} />
+                            <span className="text-[9px] font-semibold uppercase text-gray-600 dark:text-white truncate">{tFullType(type)}</span>
                           </div>
                         ))}
                       </div>
@@ -1456,20 +1640,20 @@ export default function TeamBuilderPage() {
           {filledSlots.length >= 1 && filledSlots.length < 6 && teammates.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-5 border border-gray-200/60">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Users className="w-4 h-4 text-cyan-500" /> Suggested Teammates
+                <Users className="w-4 h-4 text-cyan-500" /> {t('teamBuilder.suggestedTeammates')}
               </h3>
               <div className="space-y-1.5">
                 {teammates.map((s) => (
                   <button key={s.pokemon.id} onClick={() => addSuggestedTeammate(s.pokemon)} className="w-full text-left p-2 rounded-xl glass glass-hover border border-transparent hover:border-cyan-300 transition-all">
                     <div className="flex items-center gap-2">
-                      <Image src={s.pokemon.sprite} alt={s.pokemon.name} width={28} height={28} className="rounded-lg" unoptimized />
+                      <Image src={s.pokemon.sprite} alt={tp(s.pokemon.name)} width={28} height={28} className="rounded-lg" unoptimized />
                       <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-semibold truncate">{s.pokemon.name}</p>
-                        <div className="flex gap-0.5">{s.pokemon.types.map(t => <span key={t} className="w-2 h-2 rounded-full" style={{ backgroundColor: TYPE_COLORS[t] }} />)}</div>
+                        <p className="text-[11px] font-semibold truncate">{tp(s.pokemon.name)}</p>
+                        <div className="flex gap-0.5">{s.pokemon.types.map(ty => <span key={ty} className="w-2 h-2 rounded-full" style={{ backgroundColor: TYPE_COLORS[ty] }} />)}</div>
                       </div>
                       <span className={cn("text-[11px] font-bold", s.score >= 70 ? "text-green-600" : s.score >= 50 ? "text-amber-600" : "text-gray-400")}>{s.score}</span>
                     </div>
-                    {s.reasons.length > 0 && <p className="text-[9px] text-muted-foreground truncate mt-0.5 ml-8">{s.reasons[0]}</p>}
+                    {s.reasons.length > 0 && <p className="text-[9px] text-muted-foreground truncate mt-0.5 ml-8">{translateReason(s.reasons[0])}</p>}
                   </button>
                 ))}
               </div>
@@ -1550,17 +1734,17 @@ export default function TeamBuilderPage() {
                             <Image src={displaySprite} alt={displayName} width={80} height={80} className="drop-shadow-lg object-contain" unoptimized />
                           </div>
                           <div className="p-2 space-y-1">
-                            <h4 className="text-xs font-semibold truncate">{displayName}</h4>
+                            <h4 className="text-xs font-semibold truncate">{tp(displayName)}</h4>
                             <div className="flex gap-1">
                               {displayTypes.map((type) => (
-                                <span key={type} className="px-1 py-0.5 text-[8px] font-bold uppercase rounded text-white/80" style={{ backgroundColor: `${TYPE_COLORS[type]}AA` }}>{type.slice(0, 3)}</span>
+                                <span key={type} className="px-1 py-0.5 text-[8px] font-bold uppercase rounded text-white/80" style={{ backgroundColor: `${TYPE_COLORS[type]}AA` }}>{tt(type)}</span>
                               ))}
                             </div>
-                            {slot.item && isItemAvailable(slot.item) && <div className="text-[8px] text-amber-700 bg-amber-50 rounded px-1 py-0.5 truncate font-medium">{slot.item}</div>}
-                            {slot.nature && <div className="text-[8px] text-emerald-600 truncate">{slot.nature}</div>}
+                            {slot.item && isItemAvailable(slot.item) && <div className="text-[8px] text-amber-700 bg-amber-50 rounded px-1 py-0.5 truncate font-medium">{ti(slot.item)}</div>}
+                            {slot.nature && <div className="text-[8px] text-emerald-600 truncate">{tn(slot.nature)}</div>}
                             <div className="space-y-0">
                               {slot.moves.slice(0, 4).filter(Boolean).map((m) => (
-                                <div key={m} className="text-[9px] text-muted-foreground truncate">• {m}</div>
+                                <div key={m} className="text-[9px] text-muted-foreground truncate">• {tm(m)}</div>
                               ))}
                             </div>
                           </div>
@@ -1573,7 +1757,7 @@ export default function TeamBuilderPage() {
                     <div className="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center">
                       <Plus className="w-5 h-5 text-muted-foreground" />
                     </div>
-                    <span className="text-[10px] text-muted-foreground">Slot {i + 1}</span>
+                    <span className="text-[10px] text-muted-foreground">{t('teamBuilder.slot', { n: i + 1 })}</span>
                   </div>
                 )}
               </motion.div>
@@ -1607,11 +1791,11 @@ export default function TeamBuilderPage() {
                           <div>
                             <h3 className="text-base font-bold flex items-center gap-2">
                               <Settings2 className="w-4 h-4 text-emerald-500" />
-                              {displayName}
+                              {tp(displayName)}
                             </h3>
                             <div className="flex gap-1 mt-0.5">
-                              {displayTypes.map(t => (
-                                <span key={t} className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded text-white/80" style={{ backgroundColor: `${TYPE_COLORS[t]}AA` }}>{t}</span>
+                              {displayTypes.map(ty => (
+                                <span key={ty} className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded text-white/80" style={{ backgroundColor: `${TYPE_COLORS[ty]}AA` }}>{ty}</span>
                               ))}
                             </div>
                           </div>
@@ -1623,7 +1807,7 @@ export default function TeamBuilderPage() {
 
                   {/* Auto-Fill + Quick Apply Sets */}
                   <div className="mb-4">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-2">Quick Apply - Competitive Sets</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-2">{t('teamBuilder.quickApply')}</p>
                     <div className="flex flex-wrap gap-2">
                       {(() => {
                         const sets = USAGE_DATA[editPkm.id] ?? [];
@@ -1640,12 +1824,12 @@ export default function TeamBuilderPage() {
                                 onClick={() => applySet(selectedSlotIndex, { ability: bestSet.ability, moves: bestSet.moves, sp: bestSet.sp, nature: bestSet.nature, item: bestSet.item })}
                                 className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 hover:border-emerald-400 transition-all text-[11px] font-bold text-emerald-700 flex items-center gap-1.5"
                               >
-                                <Zap className="w-3 h-3" /> Auto-Fill Best Set
+                                <Zap className="w-3 h-3" /> {t('teamBuilder.autoFill')}
                               </button>
                             )}
                             {filteredSets.slice(bestSet ? 1 : 0, 5).map((s, i) => (
                               <button key={i} onClick={() => applySet(selectedSlotIndex, { ability: s.ability, moves: s.moves, sp: s.sp, nature: s.nature, item: s.item })} className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 hover:border-emerald-300 transition-all text-[11px] font-medium text-emerald-700">
-                                {s.name}
+                                {translateSetName(s.name)}
                               </button>
                             ))}
                           </>
@@ -1653,7 +1837,7 @@ export default function TeamBuilderPage() {
                       })()}
                       {slotSuggestion && slotSuggestion.altSets.length > 0 && slotSuggestion.altSets.slice(0, 3).map((s, i) => (
                         <button key={`sug-${i}`} onClick={() => applySet(selectedSlotIndex, s.set)} className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 hover:border-emerald-300 transition-all text-[11px] font-medium text-emerald-700">
-                            {s.set.name}
+                            {translateSetName(s.set.name)}
                             <span className={cn("ml-1.5 text-[9px] font-bold", s.matchScore >= 70 ? "text-green-600" : s.matchScore >= 50 ? "text-amber-600" : "text-gray-400")}>{s.matchScore}%</span>
                           </button>
                         ))}
@@ -1663,7 +1847,7 @@ export default function TeamBuilderPage() {
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
                     {/* Col 1: Moves */}
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold mb-2">Moves</p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold mb-2">{t('teamBuilder.moves')}</p>
                       <div className="space-y-2">
                         {[0, 1, 2, 3].map((moveIdx) => {
                           const currentMove = editSlotData.moves[moveIdx] || "";
@@ -1671,12 +1855,12 @@ export default function TeamBuilderPage() {
                           const moveData = editPkm.moves.find(m => m.name === currentMove);
                           const suggestedNames = slotSuggestion?.suggestedMoves.map(m => m.name) ?? [];
                           const moveOptions: SearchSelectOption[] = [
-                            { value: "", label: "- Empty Slot -" },
+                            { value: "", label: t('teamBuilder.emptySlot') },
                             ...sortedMoves.map((m) => ({
                               value: m.name,
-                              label: m.name,
+                              label: tm(m.name),
                               sub: `${m.type} · ${m.category}${m.power ? ` · ${m.power}bp` : ""}${m.accuracy ? ` · ${m.accuracy}%` : ""} · ${m.pp}pp`,
-                              badge: m.type.slice(0, 3),
+                              badge: tt(m.type),
                               badgeColor: `${TYPE_COLORS[m.type]}AA`,
                               suggested: suggestedNames.includes(m.name),
                               description: m.description || undefined,
@@ -1688,13 +1872,13 @@ export default function TeamBuilderPage() {
                               value={currentMove}
                               options={moveOptions}
                               onChange={(v) => updateMove(selectedSlotIndex, moveIdx, v)}
-                              placeholder="- Empty Slot -"
-                              triggerBadge={moveData ? { text: moveData.type.slice(0, 3), color: `${TYPE_COLORS[moveData.type]}AA` } : null}
+                              placeholder={t('teamBuilder.emptySlot')}
+                              triggerBadge={moveData ? { text: tt(moveData.type), color: `${TYPE_COLORS[moveData.type]}AA` } : null}
                             />
                           );
                         })}
                       </div>
-                      {slotSuggestion && slotSuggestion.suggestedMoves.length > 0 && <p className="text-[9px] text-muted-foreground mt-2">★ = engine recommended</p>}
+                      {slotSuggestion && slotSuggestion.suggestedMoves.length > 0 && <p className="text-[9px] text-muted-foreground mt-2">{t('teamBuilder.engineRecommended')}</p>}
 
                       {/* Mega Toggle */}
                       {editPkm.hasMega && (() => {
@@ -1713,7 +1897,7 @@ export default function TeamBuilderPage() {
                         };
                         return (
                           <div className="mt-4 pt-3 border-t border-gray-100">
-                            <p className="text-[10px] text-muted-foreground uppercase font-bold mb-2">Mega Evolution</p>
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold mb-2">{t('teamBuilder.megaEvolution')}</p>
                             {megaForms.length <= 1 ? (
                               <button onClick={() => {
                                 if (isMega) {
@@ -1723,7 +1907,7 @@ export default function TeamBuilderPage() {
                                   if (ab) updateSlot(selectedSlotIndex, { isMega: true, megaFormIndex: 0, ability: ab.name, preMegaAbility: editSlotData.ability || editPkm.abilities[0]?.name, item: getMegaStone(0) });
                                 }
                               }} className={cn("px-4 py-2 rounded-lg text-[12px] font-medium border transition-all flex items-center gap-2", isMega ? "bg-amber-100 border-amber-300 text-amber-800" : "bg-gray-50 border-gray-200 hover:bg-amber-50 hover:border-amber-200")}>
-                                <Sparkles className="w-4 h-4" />{isMega ? "Mega Active" : "Enable Mega"}
+                                <Sparkles className="w-4 h-4" />{isMega ? t('teamBuilder.megaActive') : t('teamBuilder.enableMega')}
                               </button>
                             ) : (
                               <div className="flex flex-wrap gap-2">
@@ -1744,7 +1928,7 @@ export default function TeamBuilderPage() {
                                 })}
                                 {isMega && (
                                   <button onClick={() => updateSlot(selectedSlotIndex, { isMega: false, megaFormIndex: 0, ability: editPkm.abilities[0]?.name, item: undefined })} className="px-3 py-2 rounded-lg text-[11px] font-medium border border-gray-200 bg-gray-50 hover:bg-red-50 hover:border-red-200 transition-all text-gray-600">
-                                    Disable
+                                    {t('teamBuilder.disable')}
                                   </button>
                                 )}
                               </div>
@@ -1752,12 +1936,12 @@ export default function TeamBuilderPage() {
                             {activeMega && isMega && (
                               <div className="mt-1.5 p-2 rounded-lg bg-amber-50/50 border border-amber-100 text-[10px]">
                                 <p className="font-medium text-amber-800">{activeMega.name}</p>
-                                {activeMega.abilities?.[0] && <p className="text-amber-700 mt-0.5">{activeMega.abilities[0].name}: {activeMega.abilities[0].description}</p>}
-                                {getMegaStone(activeIdx) && <p className="text-amber-600 mt-0.5">Held Item: {getMegaStone(activeIdx)}</p>}
-                                <p className="text-muted-foreground mt-0.5">Types: {activeMega.types.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join("/")}</p>
+                                {activeMega.abilities?.[0] && <p className="text-amber-700 mt-0.5">{ta(activeMega.abilities[0].name)}: {tad(activeMega.abilities[0].name, activeMega.abilities[0].description)}</p>}
+                                {getMegaStone(activeIdx) && <p className="text-amber-600 mt-0.5">{t('teamBuilder.item')}: {getMegaStone(activeIdx)}</p>}
+                                <p className="text-muted-foreground mt-0.5">{t('teamBuilder.typesLabel')}: {activeMega.types.map(ty => ty.charAt(0).toUpperCase() + ty.slice(1)).join("/")}</p>
                               </div>
                             )}
-                            <p className="text-[9px] text-muted-foreground mt-1">Mega stones can be held by multiple Pokémon but only one can Mega Evolve per battle</p>
+                            <p className="text-[9px] text-muted-foreground mt-1">{t('teamBuilder.megaNote')}</p>
                           </div>
                         );
                       })()}
@@ -1766,7 +1950,7 @@ export default function TeamBuilderPage() {
                     {/* Col 2: Ability + Nature + Item */}
                     <div className="space-y-3">
                       <div>
-                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-2">{editSlotData.isMega ? "Pre-Mega Ability" : "Ability"}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-2">{editSlotData.isMega ? t('teamBuilder.preMegaAbility') : t('teamBuilder.ability')}</p>
                         <div className="space-y-1.5">
                           {(() => {
                             const megaForms = editPkm.forms?.filter(f => f.isMega && !f.hidden) ?? [];
@@ -1798,21 +1982,21 @@ export default function TeamBuilderPage() {
                                         return (
                                           <button key={ab.name} onClick={() => updateSlot(selectedSlotIndex, { preMegaAbility: ab.name })} className={cn("w-full text-left px-3 py-1.5 rounded-lg text-[11px] border transition-all", isActive ? "bg-emerald-100 border-emerald-300 font-semibold text-emerald-800" : "bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300")}>
                                             <div className="flex items-center justify-between">
-                                              <span>{ab.name}{ab.isHidden ? " (H)" : ""}</span>
-                                              {isActive && <span className="text-[8px] text-emerald-500 font-bold">ACTIVE</span>}
+                                              <span>{ta(ab.name)}{ab.isHidden ? " (H)" : ""}</span>
+                                              {isActive && <span className="text-[8px] text-emerald-500 font-bold">{t('teamBuilder.activeLabel')}</span>}
                                             </div>
-                                            <p className="text-[8px] text-muted-foreground mt-0.5 line-clamp-1">{ab.description}</p>
+                                            <p className="text-[8px] text-muted-foreground mt-0.5 line-clamp-1">{tad(ab.name, ab.description)}</p>
                                           </button>
                                         );
                                       })}
                                       {megaAb && (
                                         <>
-                                          <p className="text-[10px] text-amber-600 font-bold uppercase mt-2 mb-1">Mega Ability</p>
+                                          <p className="text-[10px] text-amber-600 font-bold uppercase mt-2 mb-1">{t('teamBuilder.megaAbilityLabel')}</p>
                                           <div className="w-full text-left px-3 py-1.5 rounded-lg text-[11px] border bg-amber-50 border-amber-200 text-amber-800">
                                             <div className="flex items-center justify-between">
-                                              <span>{megaAb.name}<span className="ml-1 text-[9px] text-amber-600 font-bold">MEGA</span></span>
+                                              <span>{ta(megaAb.name)}<span className="ml-1 text-[9px] text-amber-600 font-bold">{t('teamBuilder.megaLabel')}</span></span>
                                             </div>
-                                            <p className="text-[8px] text-muted-foreground mt-0.5 line-clamp-1">{megaAb.description}</p>
+                                            <p className="text-[8px] text-muted-foreground mt-0.5 line-clamp-1">{tad(megaAb.name, megaAb.description)}</p>
                                           </div>
                                         </>
                                       )}
@@ -1827,10 +2011,10 @@ export default function TeamBuilderPage() {
                                   return (
                                     <button key={ab.name} onClick={() => { updateSlot(selectedSlotIndex, { ability: ab.name, isMega: false, megaFormIndex: 0 }); }} className={cn("w-full text-left px-3 py-1.5 rounded-lg text-[11px] border transition-all", isActive ? "bg-emerald-100 border-emerald-300 font-semibold text-emerald-800" : "bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300")}>
                                       <div className="flex items-center justify-between">
-                                        <span>{ab.name}{ab.isHidden ? " (H)" : ""}</span>
-                                        {isSugg && <span className="text-[8px] text-emerald-500 font-bold">REC</span>}
+                                        <span>{ta(ab.name)}{ab.isHidden ? " (H)" : ""}</span>
+                                        {isSugg && <span className="text-[8px] text-emerald-500 font-bold">{t('teamBuilder.recLabel')}</span>}
                                       </div>
-                                      <p className="text-[8px] text-muted-foreground mt-0.5 line-clamp-1">{ab.description}</p>
+                                      <p className="text-[8px] text-muted-foreground mt-0.5 line-clamp-1">{tad(ab.name, ab.description)}</p>
                                     </button>
                                   );
                                 })}
@@ -1841,10 +2025,10 @@ export default function TeamBuilderPage() {
                                   return (
                                     <button key={ab.name} onClick={() => { updateSlot(selectedSlotIndex, { ability: ab.name, isMega: true, megaFormIndex: formIndex, preMegaAbility: editSlotData.ability || editPkm.abilities[0]?.name, item: getMegaStoneForForm(formIndex) }); }} className={cn("w-full text-left px-3 py-1.5 rounded-lg text-[11px] border transition-all", isActive ? "bg-amber-100 border-amber-300 font-semibold text-amber-800" : "bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300")}>
                                       <div className="flex items-center justify-between">
-                                        <span>{ab.name}{shortForm ? ` (${shortForm})` : ""}<span className="ml-1 text-[9px] text-amber-600 font-bold">MEGA</span></span>
-                                        {isSugg && <span className="text-[8px] text-emerald-500 font-bold">REC</span>}
+                                        <span>{ta(ab.name)}{shortForm ? ` (${shortForm})` : ""}<span className="ml-1 text-[9px] text-amber-600 font-bold">{t('teamBuilder.megaLabel')}</span></span>
+                                        {isSugg && <span className="text-[8px] text-emerald-500 font-bold">{t('teamBuilder.recLabel')}</span>}
                                       </div>
-                                      <p className="text-[8px] text-muted-foreground mt-0.5 line-clamp-1">{ab.description}</p>
+                                      <p className="text-[8px] text-muted-foreground mt-0.5 line-clamp-1">{tad(ab.name, ab.description)}</p>
                                     </button>
                                   );
                                 })}
@@ -1856,58 +2040,58 @@ export default function TeamBuilderPage() {
                         </div>
                       </div>
                       <div>
-                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Nature</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">{t('teamBuilder.nature')}</p>
                         <SearchSelect
                           value={editSlotData.nature || "Hardy"}
                           options={allNatureNames.map((n) => {
                             const nat = NATURES[n];
                             return {
                               value: n,
-                              label: n,
-                              sub: nat.plus && nat.minus ? `+${STAT_LABELS[nat.plus]} / -${STAT_LABELS[nat.minus]}` : "Neutral",
+                              label: tn(n),
+                              sub: nat.plus && nat.minus ? `+${ts(nat.plus)} / -${ts(nat.minus)}` : t('teamBuilder.neutral'),
                               suggested: slotSuggestion?.suggestedNature.nature === n,
                             };
                           })}
                           onChange={(v) => updateSlot(selectedSlotIndex, { nature: v })}
-                          placeholder="Select nature…"
+                          placeholder={t('teamBuilder.selectNature')}
                         />
-                        {slotSuggestion && <button onClick={() => updateSlot(selectedSlotIndex, { nature: slotSuggestion.suggestedNature.nature })} className="mt-1 text-[9px] text-emerald-600 hover:text-emerald-800 transition-colors">★ Suggested: {slotSuggestion.suggestedNature.nature} - {slotSuggestion.suggestedNature.reason}</button>}
+                        {slotSuggestion && <button onClick={() => updateSlot(selectedSlotIndex, { nature: slotSuggestion.suggestedNature.nature })} className="mt-1 text-[9px] text-emerald-600 hover:text-emerald-800 transition-colors">{t('teamBuilder.suggestedPreset')}: {tn(slotSuggestion.suggestedNature.nature)} - {translateNatureReason(slotSuggestion.suggestedNature.reason)}</button>}
                       </div>
                       <div>
-                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Held Item</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">{t('teamBuilder.item')}</p>
                         <SearchSelect
                           value={editSlotData.item || ""}
                           options={[
-                            { value: "", label: "- No Item -" },
+                            { value: "", label: t('teamBuilder.noItem') },
                             ...allItemNames.map((name) => ({
                               value: name,
-                              label: name,
-                              sub: ITEMS[name]?.description,
+                              label: ti(name),
+                              sub: tid(name, ITEMS[name]?.description ?? ''),
                             })),
                           ]}
                           onChange={(v) => updateSlot(selectedSlotIndex, { item: v || undefined })}
-                          placeholder="- No Item -"
+                          placeholder={t('teamBuilder.noItem')}
                           disabled={editSlotData.isMega}
                         />
-                        {editSlotData.isMega && <p className="text-[9px] text-amber-600 mt-1">Mega stone is required - item locked</p>}
-                        {!editSlotData.isMega && editSlotData.item && ITEMS[editSlotData.item!] && <p className="text-[9px] text-muted-foreground mt-1">{ITEMS[editSlotData.item!].description}</p>}
+                        {editSlotData.isMega && <p className="text-[9px] text-amber-600 mt-1">{t('teamBuilder.megaLocked')}</p>}
+                        {!editSlotData.isMega && editSlotData.item && ITEMS[editSlotData.item!] && <p className="text-[9px] text-muted-foreground mt-1">{tid(editSlotData.item!, ITEMS[editSlotData.item!].description)}</p>}
                       </div>
                     </div>
 
                     {/* Col 3: SP Distribution */}
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Stat Points</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">{t('teamBuilder.statPoints')}</p>
                         <span className={cn("text-[11px] font-bold", Object.values(editSlotData.statPoints).reduce((a, b) => a + b, 0) >= MAX_TOTAL_POINTS ? "text-red-500" : "text-muted-foreground")}>{Object.values(editSlotData.statPoints).reduce((a, b) => a + b, 0)}/{MAX_TOTAL_POINTS}</span>
                       </div>
                       <div className="flex items-center gap-1.5 mb-1">
                         <span className="w-7" />
-                        <span className="text-[8px] text-muted-foreground uppercase w-6 text-right">Base</span>
+                        <span className="text-[8px] text-muted-foreground uppercase w-6 text-right">{t('teamBuilder.baseLabel')}</span>
                         <span className="w-5" />
-                        <span className="flex-1 text-[8px] text-muted-foreground uppercase text-center">SP</span>
+                        <span className="flex-1 text-[8px] text-muted-foreground uppercase text-center">{t('teamBuilder.spLabel')}</span>
                         <span className="w-5" />
                         <span className="w-8" />
-                        <span className="text-[8px] text-muted-foreground uppercase w-7 text-right">Total</span>
+                        <span className="text-[8px] text-muted-foreground uppercase w-7 text-right">{t('teamBuilder.totalLabel')}</span>
                       </div>
                       <div className="space-y-1.5">
                         {(() => {
@@ -1926,7 +2110,7 @@ export default function TeamBuilderPage() {
                             const isMinus = nat.minus === stat;
                             return (
                               <div key={stat} className="flex items-center gap-1.5">
-                                <span className={cn("text-[10px] font-medium w-7", isPlus ? "text-red-500" : isMinus ? "text-blue-500" : "text-muted-foreground")}>{STAT_LABELS[stat]}</span>
+                                <span className={cn("text-[10px] font-medium w-7", isPlus ? "text-red-500" : isMinus ? "text-blue-500" : "text-muted-foreground")}>{ts(stat)}</span>
                                 <span className="text-[10px] font-bold text-muted-foreground w-6 text-right tabular-nums">{base}</span>
                                 <button onClick={() => updateSP(selectedSlotIndex, stat, -2)} className="w-5 h-5 rounded bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"><Minus className="w-2.5 h-2.5" /></button>
                                 <input type="range" min={0} max={MAX_PER_STAT} step={2} value={value} onChange={(e) => setSPDirect(selectedSlotIndex, stat, parseInt(e.target.value) || 0)} className="sp-slider flex-1 h-2 appearance-none rounded-full cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-grab [&::-moz-range-track]:rounded-full" style={{ background: `linear-gradient(to right, #10b981 ${(value / MAX_PER_STAT) * 100}%, #f3f4f6 ${(value / MAX_PER_STAT) * 100}%)`, "--sp-thumb-border": value === 0 ? "#d1d5db" : "#10b981" } as React.CSSProperties} />
@@ -1939,12 +2123,12 @@ export default function TeamBuilderPage() {
                         })()}
                       </div>
                       <div className="mt-2">
-                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Presets</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">{t('teamBuilder.presets')}</p>
                         <div className="flex flex-wrap gap-1">
                           {Object.entries(STAT_PRESETS).map(([name, sp]) => (
-                            <button key={name} onClick={() => updateSlot(selectedSlotIndex, { statPoints: { ...sp } })} className="px-2 py-0.5 text-[9px] rounded bg-gray-50 border border-gray-200 hover:bg-emerald-50 hover:border-emerald-200 transition-colors">{name}</button>
+                            <button key={name} onClick={() => updateSlot(selectedSlotIndex, { statPoints: { ...sp } })} className="px-2 py-0.5 text-[9px] rounded bg-gray-50 border border-gray-200 hover:bg-emerald-50 hover:border-emerald-200 transition-colors">{t(`common.statPresets.${name}`)}</button>
                           ))}
-                          {slotSuggestion && <button onClick={() => updateSlot(selectedSlotIndex, { statPoints: { ...slotSuggestion.suggestedSP.sp } })} className="px-2 py-0.5 text-[9px] rounded bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-colors font-medium">★ Suggested</button>}
+                          {slotSuggestion && <button onClick={() => updateSlot(selectedSlotIndex, { statPoints: { ...slotSuggestion.suggestedSP.sp } })} className="px-2 py-0.5 text-[9px] rounded bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-colors font-medium">{t('teamBuilder.suggestedPreset')}</button>}
                         </div>
                       </div>
                     </div>
@@ -1969,23 +2153,23 @@ export default function TeamBuilderPage() {
                       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {/* Defensive */}
                         <div>
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold mb-2">Type Defenses</p>
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold mb-2">{t('teamBuilder.typeDefenses')}</p>
                           <div className="grid grid-cols-6 gap-1">
                             {allTypes.map((type) => {
                               const mult = getMatchup(type as PokemonType, activeTypes);
                               let label = "";
-                              let bg = "bg-gray-50 dark:bg-gray-200/5";
+                              let bg = "bg-gray-50 dark:bg-white/[0.03]";
                               let textColor = "text-gray-300 dark:text-gray-600";
-                              if (mult === 0) { label = "0"; bg = "bg-gray-900 dark:bg-gray-900"; textColor = "text-gray-400"; }
-                              else if (mult === 0.25) { label = "\u00bc"; bg = "bg-emerald-100 dark:bg-emerald-500/20"; textColor = "text-emerald-700 dark:text-emerald-400"; }
-                              else if (mult === 0.5) { label = "\u00bd"; bg = "bg-emerald-50 dark:bg-emerald-500/10"; textColor = "text-emerald-600 dark:text-emerald-400"; }
+                              if (mult === 0) { label = "0"; bg = "bg-black/60 dark:bg-black/40"; textColor = "text-gray-500 dark:text-gray-500"; }
+                              else if (mult === 0.25) { label = "\u00bc"; bg = "bg-emerald-100 dark:bg-emerald-500/20"; textColor = "text-emerald-700 dark:text-emerald-300"; }
+                              else if (mult === 0.5) { label = "\u00bd"; bg = "bg-emerald-50 dark:bg-emerald-500/15"; textColor = "text-emerald-600 dark:text-emerald-300"; }
                               else if (mult === 1) { label = ""; }
-                              else if (mult === 2) { label = "2\u00d7"; bg = "bg-red-50 dark:bg-red-500/10"; textColor = "text-red-600 dark:text-red-400"; }
-                              else if (mult === 4) { label = "4\u00d7"; bg = "bg-red-100 dark:bg-red-500/20"; textColor = "text-red-700 dark:text-red-300"; }
+                              else if (mult === 2) { label = "2\u00d7"; bg = "bg-red-50 dark:bg-red-500/15"; textColor = "text-red-600 dark:text-red-400"; }
+                              else if (mult === 4) { label = "4\u00d7"; bg = "bg-red-100 dark:bg-red-500/25"; textColor = "text-red-700 dark:text-red-300"; }
                               return (
                                 <div key={type} className={cn("flex flex-col items-center gap-0.5 py-1 rounded-md", bg)}>
-                                  <span className="w-full text-center text-[7px] font-bold uppercase text-white/90 rounded px-0.5 py-px leading-none" style={{ backgroundColor: TYPE_COLORS[type as PokemonType] }}>{type.slice(0, 3)}</span>
-                                  <span className={cn("text-[10px] font-bold leading-none", textColor)}>{label}</span>
+                                  <span className="w-full text-center text-[7px] font-bold uppercase text-white/90 rounded px-0.5 py-px leading-none" style={{ backgroundColor: TYPE_COLORS[type as PokemonType] }}>{tt(type)}</span>
+                                  <span className={cn("text-[10px] font-bold leading-none min-h-[14px]", textColor)}>{label}</span>
                                 </div>
                               );
                             })}
@@ -1993,7 +2177,7 @@ export default function TeamBuilderPage() {
                         </div>
                         {/* Offensive */}
                         <div>
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold mb-2">Move Coverage{uniqueMoveTypes.length === 0 ? " (pick moves)" : ""}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold mb-2">{t('teamBuilder.moveCoverage')}{uniqueMoveTypes.length === 0 ? ` ${t('teamBuilder.pickMoves')}` : ""}</p>
                           <div className="grid grid-cols-6 gap-1">
                             {allTypes.map((type) => {
                               let best = 0;
@@ -2010,11 +2194,11 @@ export default function TeamBuilderPage() {
                               else if (best >= 2) { label = "2\u00d7"; bg = "bg-emerald-50 dark:bg-emerald-500/10"; textColor = "text-emerald-600 dark:text-emerald-400"; }
                               else if (best === 1) { label = "1\u00d7"; textColor = "text-gray-400 dark:text-gray-500"; }
                               else if (best > 0 && best < 1) { label = "\u00bd"; bg = "bg-red-50 dark:bg-red-500/10"; textColor = "text-red-500 dark:text-red-400"; }
-                              else { label = "0"; bg = "bg-gray-900 dark:bg-gray-900"; textColor = "text-gray-400"; }
+                              else { label = "0"; bg = "bg-black/60 dark:bg-black/40"; textColor = "text-gray-500 dark:text-gray-500"; }
                               return (
                                 <div key={type} className={cn("flex flex-col items-center gap-0.5 py-1 rounded-md", bg)}>
-                                  <span className="w-full text-center text-[7px] font-bold uppercase text-white/90 rounded px-0.5 py-px leading-none" style={{ backgroundColor: TYPE_COLORS[type as PokemonType] }}>{type.slice(0, 3)}</span>
-                                  <span className={cn("text-[10px] font-bold leading-none", textColor)}>{label}</span>
+                                  <span className="w-full text-center text-[7px] font-bold uppercase text-white/90 rounded px-0.5 py-px leading-none" style={{ backgroundColor: TYPE_COLORS[type as PokemonType] }}>{tt(type)}</span>
+                                  <span className={cn("text-[10px] font-bold leading-none min-h-[14px]", textColor)}>{label}</span>
                                 </div>
                               );
                             })}
@@ -2027,8 +2211,8 @@ export default function TeamBuilderPage() {
                   {slotSuggestion && (
                     <div className="mt-3 pt-2 border-t border-gray-100">
                       <div className="flex flex-wrap gap-1">
-                        <span className="text-[9px] text-muted-foreground mr-1">Roles:</span>
-                        {slotSuggestion.role.roles.map(r => <span key={r} className="px-1.5 py-0.5 text-[9px] rounded bg-gray-100 text-gray-600 capitalize">{r.replace(/-/g, " ")}</span>)}
+                        <span className="text-[9px] text-muted-foreground mr-1">{t('teamBuilder.roles')}</span>
+                        {slotSuggestion.role.roles.map(r => <span key={r} className="px-1.5 py-0.5 text-[9px] rounded bg-gray-100 text-gray-600 capitalize">{t('common.roles.' + r)}</span>)}
                       </div>
                     </div>
                   )}
@@ -2045,10 +2229,10 @@ export default function TeamBuilderPage() {
           <div className="glass rounded-2xl p-5 border border-gray-200/60">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-2">
               <Award className="w-4 h-4 text-amber-500" />
-              <span className="bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">Tournament Teams</span>
-              <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-amber-50 text-amber-700 border border-amber-200">{tournamentTeams.length} teams</span>
+              <span className="bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">{t('teamBuilder.tournamentTeams')}</span>
+              <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-amber-50 text-amber-700 border border-amber-200">{t('teamBuilder.teamsCount', { count: tournamentTeams.length })}</span>
             </h3>
-            <p className="text-[10px] text-muted-foreground mb-3">Real teams from Champions tournaments. Click to load with competitive sets.</p>
+            <p className="text-[10px] text-muted-foreground mb-3">{t('teamBuilder.tournamentTeamsDesc')}</p>
             <div className="space-y-2">
               {tournamentTeams.slice(0, showMoreTournament ? tournamentTeams.length : 6).map((team) => (
                 <button key={team.id} onClick={() => loadTournamentTeam(team)} className="w-full text-left p-3 rounded-xl glass border border-gray-200/40 hover:border-emerald-300 hover:bg-emerald-50/30 transition-all">
@@ -2061,14 +2245,14 @@ export default function TeamBuilderPage() {
                   </div>
                   <p className="text-[10px] text-muted-foreground mb-1.5 truncate">{team.tournament}</p>
                   <div className="flex gap-1">
-                    {team.pokemonIds.map(id => { const p = POKEMON_SEED.find(pk => pk.id === id); return p ? <Image key={id} src={p.sprite} alt={p.name} width={26} height={26} className="rounded" unoptimized /> : null; })}
+                    {team.pokemonIds.map(id => { const p = POKEMON_SEED.find(pk => pk.id === id); return p ? <Image key={id} src={p.sprite} alt={tp(p.name)} width={26} height={26} className="rounded" unoptimized /> : null; })}
                   </div>
                 </button>
               ))}
             </div>
             {tournamentTeams.length > 6 && (
               <button onClick={() => setShowMoreTournament(!showMoreTournament)} className="w-full mt-3 py-2 text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors flex items-center justify-center gap-1">
-                {showMoreTournament ? <>Show Less <ChevronUp className="w-3.5 h-3.5" /></> : <>Show All {tournamentTeams.length} Teams <ChevronDown className="w-3.5 h-3.5" /></>}
+                {showMoreTournament ? <>{t('common.showLess')} <ChevronUp className="w-3.5 h-3.5" /></> : <>{t('common.showAll', { count: tournamentTeams.length })} <ChevronDown className="w-3.5 h-3.5" /></>}
               </button>
             )}
           </div>
@@ -2076,8 +2260,8 @@ export default function TeamBuilderPage() {
           {/* ── Curated Teams ── */}
           <div className="glass rounded-2xl p-5 border border-gray-200/60">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Star className="w-4 h-4 text-amber-500" /> Curated Teams
-              <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-gray-100 text-gray-600">{shuffledTeams.length} teams</span>
+              <Star className="w-4 h-4 text-amber-500" /> {t('teamBuilder.curatedTeams')}
+              <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-gray-100 text-gray-600">{t('teamBuilder.teamsCount', { count: shuffledTeams.length })}</span>
             </h3>
             <div className="space-y-2">
               {shuffledTeams.slice(0, showMoreCurated ? shuffledTeams.length : 6).map((team) => (
@@ -2089,14 +2273,14 @@ export default function TeamBuilderPage() {
                   </div>
                   <p className="text-[10px] text-muted-foreground mb-1.5 line-clamp-1">{team.description}</p>
                   <div className="flex gap-1">
-                    {team.pokemonIds.map(id => { const p = POKEMON_SEED.find(pk => pk.id === id); return p ? <Image key={id} src={p.sprite} alt={p.name} width={26} height={26} className="rounded" unoptimized /> : null; })}
+                    {team.pokemonIds.map(id => { const p = POKEMON_SEED.find(pk => pk.id === id); return p ? <Image key={id} src={p.sprite} alt={tp(p.name)} width={26} height={26} className="rounded" unoptimized /> : null; })}
                   </div>
                 </button>
               ))}
             </div>
             {shuffledTeams.length > 6 && (
               <button onClick={() => setShowMoreCurated(!showMoreCurated)} className="w-full mt-3 py-2 text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors flex items-center justify-center gap-1">
-                {showMoreCurated ? <>Show Less <ChevronUp className="w-3.5 h-3.5" /></> : <>Show All {shuffledTeams.length} Teams <ChevronDown className="w-3.5 h-3.5" /></>}
+                {showMoreCurated ? <>{t('common.showLess')} <ChevronUp className="w-3.5 h-3.5" /></> : <>{t('common.showAll', { count: shuffledTeams.length })} <ChevronDown className="w-3.5 h-3.5" /></>}
               </button>
             )}
           </div>
@@ -2121,12 +2305,12 @@ export default function TeamBuilderPage() {
               className="fixed inset-4 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-50 sm:w-full sm:max-w-lg glass rounded-2xl border border-gray-200/60 p-6"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Import Team</h3>
+                <h3 className="text-lg font-semibold">{t('teamBuilder.importTitle')}</h3>
                 <button onClick={() => setShowImport(false)} className="p-1 rounded-lg hover:bg-gray-100">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <p className="text-xs text-muted-foreground mb-3">Paste a team in Pokepaste / Pokémon Showdown format below.</p>
+              <p className="text-xs text-muted-foreground mb-3">{t('teamBuilder.importPastePrompt')}</p>
               <textarea
                 value={importText}
                 onChange={(e) => { setImportText(e.target.value); setImportError(""); }}
@@ -2141,13 +2325,13 @@ export default function TeamBuilderPage() {
                   className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-40"
                 >
                   <Upload className="w-4 h-4" />
-                  Import Team
+                  {t('teamBuilder.importBtn')}
                 </button>
                 <button
                   onClick={() => setShowImport(false)}
                   className="flex-1 py-2.5 rounded-xl glass glass-hover text-sm font-medium flex items-center justify-center gap-2"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             </motion.div>
@@ -2173,7 +2357,7 @@ export default function TeamBuilderPage() {
               className="fixed inset-4 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-50 sm:w-full sm:max-w-lg glass rounded-2xl border border-gray-200/60 p-6"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Export Team</h3>
+                <h3 className="text-lg font-semibold">{t('teamBuilder.exportTitle')}</h3>
                 <button onClick={() => setShowExport(false)} className="p-1 rounded-lg hover:bg-gray-100">
                   <X className="w-5 h-5" />
                 </button>
@@ -2189,7 +2373,7 @@ export default function TeamBuilderPage() {
                   className="flex-1 py-2.5 rounded-xl bg-emerald-100 text-emerald-700 border border-emerald-300 text-sm font-medium flex items-center justify-center gap-2 hover:bg-emerald-200 transition-colors"
                 >
                   <Copy className="w-4 h-4" />
-                  Copy Pokepaste
+                  {t('teamBuilder.copyPokepaste')}
                 </button>
                 <button
                   onClick={() => {
@@ -2204,7 +2388,7 @@ export default function TeamBuilderPage() {
                   className="flex-1 py-2.5 rounded-xl glass glass-hover text-sm font-medium flex items-center justify-center gap-2"
                 >
                   <Download className="w-4 h-4" />
-                  Download JSON
+                  {t('teamBuilder.downloadJson')}
                 </button>
               </div>
             </motion.div>
@@ -2230,7 +2414,7 @@ export default function TeamBuilderPage() {
               className="fixed inset-4 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-50 sm:w-full sm:max-w-2xl glass rounded-2xl border border-gray-200/60 p-6 overflow-auto max-h-[90vh]"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Share Team</h3>
+                <h3 className="text-lg font-semibold">{t('teamBuilder.shareTitle')}</h3>
                 <button onClick={() => setShowShare(false)} className="p-1 rounded-lg hover:bg-gray-100">
                   <X className="w-5 h-5" />
                 </button>
@@ -2252,7 +2436,7 @@ export default function TeamBuilderPage() {
                     className={cn("px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5", urlCopied ? "bg-green-100 text-green-700" : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200")}
                   >
                     {urlCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {urlCopied ? "Copied!" : "Copy Link"}
+                    {urlCopied ? t('common.copied') : t('teamBuilder.copyLink')}
                   </button>
                 </div>
               )}
@@ -2262,16 +2446,61 @@ export default function TeamBuilderPage() {
                   className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                 >
                   <Download className="w-4 h-4" />
-                  Download Image
+                  {t('teamBuilder.downloadImage')}
                 </button>
                 <button
                   onClick={copyShareUrl}
                   className={cn("flex-1 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all", urlCopied ? "bg-green-100 text-green-700" : "glass glass-hover")}
                 >
                   {urlCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  {urlCopied ? "Link Copied!" : "Copy Link"}
+                  {urlCopied ? t('teamBuilder.linkCopied') : t('teamBuilder.copyLink')}
                 </button>
               </div>
+
+              {/* Pokepaste Section */}
+              {shareUrl && (
+                <div className="mt-4 pt-4 border-t border-gray-200/60 dark:border-white/10">
+                  <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <ExternalLink className="w-4 h-4 text-indigo-500" />
+                    {t('teamBuilder.pokepaste')}
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground mb-3">{t('teamBuilder.pokepasteDesc')}</p>
+                  <div className="flex flex-wrap gap-x-5 gap-y-2 mb-3">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs">
+                      <input type="checkbox" checked={pasteHideNature} onChange={e => setPasteHideNature(e.target.checked)} className="rounded border-gray-300 text-indigo-500 focus:ring-indigo-500 w-3.5 h-3.5" />
+                      {t('teamBuilder.hideNature')}
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-xs">
+                      <input type="checkbox" checked={pasteHideStatPoints} onChange={e => setPasteHideStatPoints(e.target.checked)} className="rounded border-gray-300 text-indigo-500 focus:ring-indigo-500 w-3.5 h-3.5" />
+                      {t('teamBuilder.hideStatPoints')}
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-xs">
+                      <input type="checkbox" checked={pasteHideItem} onChange={e => setPasteHideItem(e.target.checked)} className="rounded border-gray-300 text-indigo-500 focus:ring-indigo-500 w-3.5 h-3.5" />
+                      {t('teamBuilder.hideItem')}
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-xs">
+                      <input type="checkbox" checked={pasteHideAbility} onChange={e => setPasteHideAbility(e.target.checked)} className="rounded border-gray-300 text-indigo-500 focus:ring-indigo-500 w-3.5 h-3.5" />
+                      {t('teamBuilder.hideAbility')}
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={pasteGenerating ? "..." : pasteUrl}
+                      className="flex-1 px-3 py-2 text-xs rounded-lg bg-gray-100 border border-gray-200 text-gray-600 truncate"
+                      onClick={(e) => (e.target as HTMLInputElement).select()}
+                    />
+                    <button
+                      onClick={copyPasteUrl}
+                      className={cn("px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 shrink-0", pasteLinkCopied ? "bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400" : "bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-500/25")}
+                    >
+                      {pasteLinkCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      {pasteLinkCopied ? t('common.copied') : t('teamBuilder.copyPasteLink')}
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </>
         )}
@@ -2297,14 +2526,14 @@ export default function TeamBuilderPage() {
               {/* Picker Header */}
               <div className="p-4 border-b border-gray-200/60">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold">Choose Pokémon</h3>
+                  <h3 className="text-lg font-semibold">{t('common.choosePokemon')}</h3>
                   <button onClick={() => setShowPokemonPicker(false)} className="p-1 rounded-lg hover:bg-gray-100">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
                 <input
                   type="text"
-                  placeholder="Search by name, type, ability or move..."
+                  placeholder={t('teamBuilder.searchPlaceholder')}
                   value={pickerSearch}
                   onChange={(e) => setPickerSearch(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl glass border border-gray-200 focus:border-emerald-500/50 focus:outline-none text-sm"
@@ -2312,35 +2541,35 @@ export default function TeamBuilderPage() {
                 />
                 {/* Type filter pills */}
                 <div className="flex flex-wrap gap-1.5 mt-3">
-                  {(Object.keys(TYPE_COLORS) as PokemonType[]).map((t) => (
+                  {(Object.keys(TYPE_COLORS) as PokemonType[]).map((ty) => (
                     <button
-                      key={t}
-                      onClick={() => setPickerTypeFilter(pickerTypeFilter === t ? null : t)}
+                      key={ty}
+                      onClick={() => setPickerTypeFilter(pickerTypeFilter === ty ? null : ty)}
                       className="px-2.5 py-1 rounded-full text-[10px] font-bold capitalize transition-all"
                       style={{
-                        backgroundColor: pickerTypeFilter === t ? TYPE_COLORS[t] : `${TYPE_COLORS[t]}30`,
-                        color: pickerTypeFilter === t ? "#fff" : TYPE_COLORS[t],
-                        border: `1.5px solid ${pickerTypeFilter === t ? TYPE_COLORS[t] : `${TYPE_COLORS[t]}60`}`,
-                        textShadow: pickerTypeFilter === t ? "0 1px 2px rgba(0,0,0,0.2)" : "none",
+                        backgroundColor: pickerTypeFilter === ty ? TYPE_COLORS[ty] : `${TYPE_COLORS[ty]}30`,
+                        color: pickerTypeFilter === ty ? "#fff" : TYPE_COLORS[ty],
+                        border: `1.5px solid ${pickerTypeFilter === ty ? TYPE_COLORS[ty] : `${TYPE_COLORS[ty]}60`}`,
+                        textShadow: pickerTypeFilter === ty ? "0 1px 2px rgba(0,0,0,0.2)" : "none",
                       }}
                     >
-                      {t}
+                      {t(`common.types.${ty}`)}
                     </button>
                   ))}
                 </div>
 
                 {/* Base Stats section */}
-                <div className="mt-3 rounded-xl border border-gray-200/60 dark:border-gray-700/60 overflow-hidden bg-white/40 dark:bg-white/5">
+                <div className="mt-3 rounded-xl border border-gray-200/60 dark:border-white/[0.06] overflow-hidden bg-white/40 dark:bg-white/[0.03]">
                   <button
                     onClick={() => setShowStatFilters(!showStatFilters)}
                     className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors"
                   >
                     <div className="flex items-center gap-2">
                       <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-500" />
-                      <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-200">Base Stat Filter</span>
+                      <span className="text-[11px] font-semibold text-gray-700 dark:text-white">{t('teamBuilder.baseStatFilter')}</span>
                       {Object.values(pickerStatFilters).some(v => v > 0) && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                          {Object.values(pickerStatFilters).filter(v => v > 0).length} active
+                          {Object.values(pickerStatFilters).filter(v => v > 0).length} {t('teamBuilder.activeFilters')}
                         </span>
                       )}
                     </div>
@@ -2359,21 +2588,21 @@ export default function TeamBuilderPage() {
                               : "text-transparent pointer-events-none"
                           )}
                         >
-                          Clear all
+                          {t('common.clearAll')}
                         </button>
                       </div>
                       <div className="grid grid-cols-2 gap-x-5 gap-y-1.5">
                         {([
-                          { key: "hp" as const, label: "HP", color: "#ff5959", max: 255 },
-                          { key: "attack" as const, label: "Atk", color: "#f5ac78", max: 255 },
-                          { key: "defense" as const, label: "Def", color: "#fae078", max: 255 },
-                          { key: "spAtk" as const, label: "SpA", color: "#9db7f5", max: 255 },
-                          { key: "spDef" as const, label: "SpD", color: "#a7db8d", max: 255 },
-                          { key: "speed" as const, label: "Spe", color: "#fa92b2", max: 255 },
-                          { key: "bst" as const, label: "BST", color: "#888", max: 800 },
-                        ]).map(({ key, label, color, max }) => (
+                          { key: "hp" as const, stat: "hp", color: "#ff5959", max: 255 },
+                          { key: "attack" as const, stat: "attack", color: "#f5ac78", max: 255 },
+                          { key: "defense" as const, stat: "defense", color: "#fae078", max: 255 },
+                          { key: "spAtk" as const, stat: "spAtk", color: "#9db7f5", max: 255 },
+                          { key: "spDef" as const, stat: "spDef", color: "#a7db8d", max: 255 },
+                          { key: "speed" as const, stat: "speed", color: "#fa92b2", max: 255 },
+                          { key: "bst" as const, stat: "bst", color: "#888", max: 800 },
+                        ]).map(({ key, stat, color, max }) => (
                           <div key={key} className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-bold w-7 text-right shrink-0" style={{ color }}>{label}</span>
+                            <span className="text-[10px] font-bold w-7 text-right shrink-0" style={{ color }}>{ts(stat)}</span>
                             <input
                               type="range"
                               min={0}
@@ -2381,12 +2610,12 @@ export default function TeamBuilderPage() {
                               step={key === "bst" ? 10 : 5}
                               value={pickerStatFilters[key]}
                               onChange={(e) => setPickerStatFilters(prev => ({ ...prev, [key]: Number(e.target.value) }))}
-                              className="flex-1 h-1.5 cursor-pointer"
-                              style={{ accentColor: color }}
+                              className="stat-range flex-1 h-1.5 cursor-pointer appearance-none bg-transparent"
+                              style={{ accentColor: color, "--stat-color": color } as React.CSSProperties}
                             />
                             <span className={cn(
                               "text-[10px] font-mono w-8 tabular-nums shrink-0 text-right transition-colors",
-                              pickerStatFilters[key] > 0 ? "font-bold" : "text-gray-400 dark:text-gray-500"
+                              pickerStatFilters[key] > 0 ? "font-bold" : "text-gray-400 dark:text-gray-400"
                             )} style={pickerStatFilters[key] > 0 ? { color } : undefined}>
                               {pickerStatFilters[key] > 0 ? `≥${pickerStatFilters[key]}` : " - "}
                             </span>
@@ -2400,7 +2629,7 @@ export default function TeamBuilderPage() {
                 {/* Result count */}
                 <div className="flex items-center justify-between mt-2">
                   <p className="text-[10px] text-muted-foreground">
-                    {filteredPicker.length} Pokémon{pickerSearch || pickerTypeFilter || Object.values(pickerStatFilters).some(v => v > 0) ? " found" : " available"}
+                    {t(pickerSearch || pickerTypeFilter || Object.values(pickerStatFilters).some(v => v > 0) ? 'teamBuilder.pokemonCount' : 'teamBuilder.pokemonAvailable', { count: filteredPicker.length })}
                   </p>
                 </div>
               </div>
@@ -2425,23 +2654,23 @@ export default function TeamBuilderPage() {
                       <div className="flex items-center gap-2">
                         <Image
                           src={matchedMegaForm?.sprite ?? pokemon.sprite}
-                          alt={pokemon.name}
+                          alt={tp(pokemon.name)}
                           width={40}
                           height={40}
                           className="rounded-lg"
                           unoptimized
                         />
                         <div className="min-w-0">
-                          <p className="text-xs font-medium truncate">{matchedMegaForm ? matchedMegaForm.name.replace(pokemon.name + " ", "M-").replace(pokemon.name, `M-${pokemon.name}`) : pokemon.name}</p>
+                          <p className="text-xs font-medium truncate">{matchedMegaForm ? matchedMegaForm.name.replace(pokemon.name + " ", "M-").replace(pokemon.name, `M-${tp(pokemon.name)}`) : tp(pokemon.name)}</p>
                           {isMegaAbilityMatch && megaMatchAbility && (
                             <p className="text-[9px] text-amber-600 dark:text-amber-400 font-medium truncate">{megaMatchAbility}</p>
                           )}
                           <div className="flex gap-1 mt-0.5">
-                            {(matchedMegaForm?.types ?? pokemon.types).map((t) => (
+                            {(matchedMegaForm?.types ?? pokemon.types).map((ty) => (
                               <span
-                                key={t}
+                                key={ty}
                                 className="w-2 h-2 rounded-full"
-                                style={{ backgroundColor: TYPE_COLORS[t] }}
+                                style={{ backgroundColor: TYPE_COLORS[ty] }}
                               />
                             ))}
                           </div>
